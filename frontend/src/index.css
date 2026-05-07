@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Cormorant Garamond', serif;
+  }
+}
+
+@layer components {
+  .paper-texture {
+    background-color: #fffdf9;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  .polaroid-shadow {
+    box-shadow:
+      0 1px 1px rgba(0,0,0,0.05),
+      0 4px 12px rgba(0,0,0,0.06),
+      0 20px 50px rgba(0,0,0,0.08);
+  }
+
+  .lined-paper {
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent calc(2.2em - 1px),
+      #e0d9d1 calc(2.2em - 1px),
+      #e0d9d1 2.2em
+    );
+    line-height: 2.2em;
+    padding-top: 0.3em;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .stamp-card {
+    @apply flex-shrink-0 w-16 h-20 rounded flex flex-col items-center justify-center gap-1 transition-all duration-200 border-2;
+  }
+
+  .stamp-card.selected {
+    @apply bg-secondary/10 border-secondary shadow-md;
+  }
+
+  .stamp-card.unselected {
+    @apply bg-surface-container border-dashed border-outline-variant hover:border-secondary/60 hover:bg-secondary/5;
+  }
+
+  .input-field {
+    @apply w-full bg-surface-container/60 border border-outline-variant/40 rounded-lg px-4 py-3 font-body-md text-body-md text-on-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all duration-200 placeholder:text-on-surface-variant/50;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-on-primary font-label-md text-label-md py-4 rounded-full shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  .toast {
+    @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl text-sm font-medium backdrop-blur-md transition-all duration-300;
+  }
+}

@@ -1,0 +1,98 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  darkMode: "class",
+  theme: {
+      extend: {
+          "colors": {
+              "on-background": "#1e1b19",
+              "on-primary-fixed-variant": "#2b4a60",
+              "on-secondary-fixed": "#341100",
+              "on-tertiary-fixed-variant": "#4c4733",
+              "secondary-fixed": "#ffdbca",
+              "primary-container": "#5a7890",
+              "on-surface": "#1e1b19",
+              "surface-tint": "#446279",
+              "outline": "#73787d",
+              "on-tertiary": "#ffffff",
+              "error": "#ba1a1a",
+              "on-primary-container": "#fcfcff",
+              "outline-variant": "#c2c7cd",
+              "primary-fixed": "#cae6ff",
+              "surface": "#fff8f5",
+              "on-secondary": "#ffffff",
+              "secondary-container": "#fea271",
+              "tertiary-fixed": "#ebe2c8",
+              "primary-fixed-dim": "#abcae5",
+              "background": "#fff8f5",
+              "inverse-primary": "#abcae5",
+              "on-secondary-fixed-variant": "#74340b",
+              "on-tertiary-fixed": "#1f1c0b",
+              "on-tertiary-container": "#fffbff",
+              "tertiary": "#615c47",
+              "secondary": "#924b21",
+              "on-error-container": "#93000a",
+              "on-secondary-container": "#77370d",
+              "surface-container-lowest": "#ffffff",
+              "on-primary": "#ffffff",
+              "inverse-surface": "#33302e",
+              "surface-container-low": "#faf2ef",
+              "on-primary-fixed": "#001e2f",
+              "surface-variant": "#e8e1de",
+              "on-surface-variant": "#42474c",
+              "on-error": "#ffffff",
+              "primary": "#415f76",
+              "surface-container-highest": "#e8e1de",
+              "surface-container": "#f4ece9",
+              "surface-dim": "#e0d9d6",
+              "secondary-fixed-dim": "#ffb690",
+              "inverse-on-surface": "#f7efec",
+              "surface-container-high": "#eee7e4",
+              "surface-bright": "#fff8f5",
+              "error-container": "#ffdad6",
+              "tertiary-container": "#7b745e",
+              "tertiary-fixed-dim": "#cec6ad"
+          },
+          "borderRadius": {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+          },
+          "spacing": {
+              "sm": "1rem",
+              "lg": "2.5rem",
+              "xs": "0.5rem",
+              "xl": "4rem",
+              "gutter": "24px",
+              "margin": "32px",
+              "md": "1.5rem",
+              "unit": "4px"
+          },
+          "fontFamily": {
+              "body-lg": ["DM Sans", "sans-serif"],
+              "label-md": ["DM Sans", "sans-serif"],
+              "headline-md": ["Cormorant Garamond", "serif"],
+              "headline-xl": ["Cormorant Garamond", "serif"],
+              "headline-lg": ["Cormorant Garamond", "serif"],
+              "body-sm": ["DM Sans", "sans-serif"],
+              "quote": ["Cormorant Garamond", "serif"],
+              "body-md": ["DM Sans", "sans-serif"]
+          },
+          "fontSize": {
+              "body-lg": ["17px", { "lineHeight": "1.7", "fontWeight": "400" }],
+              "label-md": ["11px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "500" }],
+              "headline-md": ["26px", { "lineHeight": "1.3", "fontWeight": "600" }],
+              "headline-xl": ["52px", { "lineHeight": "1.1", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+              "headline-lg": ["36px", { "lineHeight": "1.2", "fontWeight": "600" }],
+              "body-sm": ["13px", { "lineHeight": "1.6", "fontWeight": "400" }],
+              "quote": ["22px", { "lineHeight": "1.6", "fontStyle": "italic", "fontWeight": "400" }],
+              "body-md": ["15px", { "lineHeight": "1.7", "fontWeight": "400" }]
+          }
+      }
+  },
+  plugins: [],
+}
