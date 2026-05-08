@@ -23,6 +23,7 @@ export default function AdminDashboard({ phase, setPhase }) {
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
+  const [studentsWithMessages, setStudentsWithMessages] = useState(new Set());
 
   const apiUrl = '';
 
@@ -34,6 +35,24 @@ export default function AdminDashboard({ phase, setPhase }) {
       .catch(() => {})
       .finally(() => setLoadingStudents(false));
   }, []);
+
+  useEffect(() => {
+    if (students.length === 0) return;
+    fetch(`${apiUrl}/api/admin/messages/all`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          const ids = new Set(data.map(m => {
+            const recipientId = typeof m.recipient === 'object' && m.recipient._id
+              ? m.recipient._id.toString()
+              : m.recipient.toString();
+            return recipientId;
+          }));
+          setStudentsWithMessages(ids);
+        }
+      })
+      .catch(() => {});
+  }, [students.length]);
 
   useEffect(() => {
     if (!selectedStudent) { setMessages([]); return; }
@@ -53,8 +72,9 @@ export default function AdminDashboard({ phase, setPhase }) {
   }, [selectedStudent]);
 
   const pickRandom = () => {
-    if (students.length === 0) return;
-    const rand = students[Math.floor(Math.random() * students.length)];
+    const studentsWithMsg = students.filter(s => studentsWithMessages.has(s._id));
+    if (studentsWithMsg.length === 0) return;
+    const rand = studentsWithMsg[Math.floor(Math.random() * studentsWithMsg.length)];
     setSelectedStudent(rand);
     setSidebarOpen(false);
   };

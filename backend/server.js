@@ -277,6 +277,26 @@ app.post('/api/messages', authenticate, async (req, res) => {
   try {
     // Messaging is now open at all phases, no phase check needed.
 
+    // Check if sender already sent a message to this recipient
+    const existingMessage = await Message.findOne({
+      senderUsn: req.user.usn,
+      recipient: recipientId
+    });
+    if (existingMessage) {
+      return res.status(400).json({ error: 'You can only send one message per person' });
+    }
+
+    // Check anonymous message limit (max 3 per person)
+    if (isAnonymous) {
+      const anonymousCount = await Message.countDocuments({
+        senderUsn: req.user.usn,
+        isAnonymous: true
+      });
+      if (anonymousCount >= 3) {
+        return res.status(400).json({ error: 'You can only send up to 3 anonymous messages' });
+      }
+    }
+
     const newMessage = new Message({
       recipient: recipientId,
       content,
