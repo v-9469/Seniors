@@ -487,6 +487,19 @@ app.get('/api/admin/messages/all', requireAdmin, async (req, res) => {
   }
 });
 
+// Admin: get only students who have messages
+app.get('/api/admin/students-with-messages', requireAdmin, async (req, res) => {
+  try {
+    const messageRecipients = await Message.distinct('recipient');
+    const users = await User.find({ _id: { $in: messageRecipients } })
+      .select('name usn _id photo')
+      .lean();
+    res.json(users);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── Admin: Get Messages with senderUsn for one student ────────────────────
 app.get('/api/admin/messages/:recipientId', requireAdmin, async (req, res) => {
   try {

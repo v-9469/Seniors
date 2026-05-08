@@ -37,22 +37,15 @@ export default function AdminDashboard({ phase, setPhase }) {
   }, []);
 
   useEffect(() => {
-    if (students.length === 0) return;
-    fetch(`${apiUrl}/api/admin/messages/all`, { credentials: 'include' })
+    fetch(`${apiUrl}/api/admin/students-with-messages`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (Array.isArray(data)) {
-          const ids = new Set(data.map(m => {
-            const recipientId = typeof m.recipient === 'object' && m.recipient._id
-              ? m.recipient._id.toString()
-              : m.recipient.toString();
-            return recipientId;
-          }));
-          setStudentsWithMessages(ids);
+          setStudentsWithMessages(new Set(data.map(s => s._id.toString())));
         }
       })
       .catch(() => {});
-  }, [students.length]);
+  }, []);
 
   useEffect(() => {
     if (!selectedStudent) { setMessages([]); return; }
@@ -71,12 +64,24 @@ export default function AdminDashboard({ phase, setPhase }) {
       .finally(() => setLoadingMessages(false));
   }, [selectedStudent]);
 
-  const pickRandom = () => {
-    const studentsWithMsg = students.filter(s => studentsWithMessages.has(s._id));
-    if (studentsWithMsg.length === 0) return;
-    const rand = studentsWithMsg[Math.floor(Math.random() * studentsWithMsg.length)];
-    setSelectedStudent(rand);
-    setSidebarOpen(false);
+  const pickRandom = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/api/admin/students-with-messages`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const studentsWithMsg = await res.json();
+      if (!Array.isArray(studentsWithMsg) || studentsWithMsg.length === 0) {
+        alert('No students have received messages yet.');
+        return;
+      }
+      const rand = studentsWithMsg[Math.floor(Math.random() * studentsWithMsg.length)];
+      setSelectedStudent(rand);
+      // Only close sidebar on mobile
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      }
+    } catch {
+      alert('Failed to fetch students. Please try again.');
+    }
   };
 
   const handleLogout = () => {
