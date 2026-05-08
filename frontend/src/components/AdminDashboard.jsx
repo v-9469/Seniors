@@ -24,7 +24,7 @@ export default function AdminDashboard({ phase, setPhase }) {
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
 
-  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
+  const apiUrl = '';
 
   useEffect(() => {
     setLoadingStudents(true);

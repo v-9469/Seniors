@@ -16,7 +16,7 @@ export default function AdminLogin({ setAuth }) {
     setIsLoading(true);
 
     try {
-      const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
+      const apiUrl = '';
       const response = await fetch(`${apiUrl}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

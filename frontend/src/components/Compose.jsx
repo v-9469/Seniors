@@ -49,7 +49,7 @@ export default function Compose() {
   const [toast, setToast] = useState(null);
   const comboRef = useRef(null);
 
-  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
+  const apiUrl = '';
 
   // Close combobox when clicking outside
   useEffect(() => {

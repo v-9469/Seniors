@@ -15,7 +15,7 @@ function App() {
   const [phase, setPhase] = useState('welcome');
   const [checking, setChecking] = useState(true);
 
-  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
+  const apiUrl = '';
 
   useEffect(() => {
     // Validate cookie AND fetch messaging status in parallel

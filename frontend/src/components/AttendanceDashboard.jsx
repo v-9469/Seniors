@@ -46,7 +46,7 @@ export default function AttendanceDashboard({ onClose }) {
   const [activeCelebration, setActiveCelebration] = useState(null);
   const graphRef = useRef(null);
 
-  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
+  const apiUrl = '';
   const hostname = window.location.hostname;
 
   // ── Initial load ─────────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ export default function AttendanceDashboard({ onClose }) {
               {qrModal.scanToken ? (
                 <>
                   <img
-                    src={getQrUrl(`${apiUrl}/api/scan/${qrModal.scanToken}`)}
+                    src={getQrUrl(`${window.location.origin}/api/scan/${qrModal.scanToken}`)}
                     alt="QR Code"
                     className="w-52 h-52 mx-auto rounded-lg mb-3"
                   />
