@@ -27,6 +27,7 @@ mongoose.connect(
     minPoolSize: 5,           // Keep 5 connections warm at idle
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
+    family: 4,
   }
 )
   .then(async () => {

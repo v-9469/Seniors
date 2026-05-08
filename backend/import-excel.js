@@ -9,7 +9,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/senior
 
 async function importUsers() {
   try {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI, { family: 4 });
     console.log('Connected to MongoDB');
 
     // Read the Excel file
