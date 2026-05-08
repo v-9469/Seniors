@@ -7,5 +7,6 @@ export default defineConfig({
   server: {
     port: 12001,
     host: true,
+    allowedHosts: ['goldenhour.assetiq.dpdns.org'],
   }
 })
