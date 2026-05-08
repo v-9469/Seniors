@@ -72,7 +72,7 @@ export default function AdminDashboard({ phase, setPhase }) {
     // Small timeout so the button state renders before jsPDF blocks the thread
     setTimeout(() => {
       try {
-        exportMessagesPDF(selectedStudent, messages);
+        exportMessagesPDF(selectedStudent, messages, students);
       } finally {
         setIsExporting(false);
       }
