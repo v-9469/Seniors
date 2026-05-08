@@ -92,7 +92,6 @@ export default function Login({ setAuth }) {
         className="w-full max-w-sm relative"
       >
         {/* Tape decoration */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-7 bg-surface-variant/70 rounded-sm shadow-sm rotate-1 z-20" />
 
         <div className="paper-texture polaroid-shadow rounded-2xl px-8 py-10 relative z-10">
 
