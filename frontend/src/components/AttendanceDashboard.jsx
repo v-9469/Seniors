@@ -273,6 +273,14 @@ export default function AttendanceDashboard({ onClose }) {
                           {student.name?.split(' ')[0] || student.usn}
                         </div>
                       </motion.div>
+                    ) : student.photo ? (
+                      <div
+                        className="w-10 h-10 rounded-full overflow-hidden border-2 border-outline-variant/40 cursor-pointer hover:border-outline transition-colors shadow-sm opacity-60 grayscale scale-75"
+                        onClick={() => setQrModal(student)}
+                        title={`${student.name} — Not arrived`}
+                      >
+                        <UserAvatar user={student} size={40} />
+                      </div>
                     ) : (
                       <div
                         className="w-5 h-5 rounded-full bg-outline-variant/30 border border-outline-variant cursor-pointer hover:bg-outline-variant transition-colors shadow-sm"
