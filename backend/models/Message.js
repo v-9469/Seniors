@@ -20,6 +20,10 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
     select: false // Strict omission from public queries
+  },
+  isAnonymous: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

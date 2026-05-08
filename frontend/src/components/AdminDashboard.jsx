@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportMessagesPDF, exportAllMessagesPDF } from '../utils/exportPDF';
-import AttendanceDashboard from './AttendanceDashboard';
 
 const STAMPS = {
   local_florist: '🌸',
@@ -12,7 +11,7 @@ const STAMPS = {
   auto_stories: '📖',
 };
 
-export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }) {
+export default function AdminDashboard({ phase, setPhase }) {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -24,9 +23,8 @@ export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
-  const [showAttendance, setShowAttendance] = useState(false);
 
-  const apiUrl = `http://${window.location.hostname}:5000`;
+  const apiUrl = `http://${window.location.hostname}:12000`;
 
   useEffect(() => {
     setLoadingStudents(true);
@@ -103,18 +101,18 @@ export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }
     }
   };
 
-  const toggleMessaging = async () => {
+  const changePhase = async (newPhase) => {
     setTogglingMsg(true);
     try {
-      const res = await fetch(`${apiUrl}/api/admin/settings/messaging`, {
+      const res = await fetch(`${apiUrl}/api/admin/settings/phase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ enabled: !messagingEnabled })
+        body: JSON.stringify({ phase: newPhase })
       });
       if (res.ok) {
         const data = await res.json();
-        setMessagingEnabled(data.messagingEnabled);
+        setPhase(data.phase);
       }
     } catch {}
     finally { setTogglingMsg(false); }
@@ -128,10 +126,6 @@ export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }
   return (
     <div className="bg-background text-on-background min-h-screen flex flex-col">
 
-      {/* Attendance Dashboard overlay */}
-      <AnimatePresence>
-        {showAttendance && <AttendanceDashboard onClose={() => setShowAttendance(false)} />}
-      </AnimatePresence>
 
       {/* ── Top Bar ── */}
       <header className="bg-surface/90 backdrop-blur-md border-b border-outline-variant/20 shadow-sm sticky top-0 z-40">
@@ -150,15 +144,15 @@ export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }
           </div>
 
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* Current People button */}
+            {/* Visible Dashboard button */}
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAttendance(true)}
+              onClick={() => window.open('/presentation', '_blank')}
               className="flex items-center gap-1.5 bg-indigo-600 text-white px-3 py-2 rounded-full text-sm font-medium shadow hover:bg-indigo-700 transition-colors"
             >
-              <span className="material-symbols-outlined text-base">groups</span>
-              <span className="hidden sm:inline text-xs">Current People</span>
+              <span className="material-symbols-outlined text-base">cast</span>
+              <span className="hidden sm:inline text-xs">Visible Dashboard</span>
             </motion.button>
             {/* Download All PDFs */}
             <motion.button
@@ -184,24 +178,26 @@ export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }
               </span>
             </motion.button>
 
-            {/* Messaging Toggle */}
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleMessaging}
-              disabled={togglingMsg}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium shadow transition-all duration-300 ${
-                messagingEnabled
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high border border-outline-variant'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">
-                {messagingEnabled ? 'toggle_on' : 'toggle_off'}
+            {/* Phase Selection */}
+            <div className="relative">
+              <select
+                value={phase}
+                onChange={(e) => changePhase(e.target.value)}
+                disabled={togglingMsg}
+                className={`appearance-none outline-none pl-3 pr-8 py-2 rounded-full text-sm font-medium shadow transition-all duration-300 cursor-pointer ${
+                  phase === 'messaging' ? 'bg-green-500 text-white hover:bg-green-600' :
+                  phase === 'wordcloud' ? 'bg-purple-500 text-white hover:bg-purple-600' :
+                  'bg-surface-container text-on-surface-variant hover:bg-surface-container-high border border-outline-variant'
+                }`}
+              >
+                <option value="welcome">Phase 1: Welcome</option>
+                <option value="wordcloud">Phase 2: Word Cloud</option>
+                <option value="messaging">Phase 3: Messaging</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-base pointer-events-none opacity-70">
+                arrow_drop_down
               </span>
-              <span className="hidden sm:inline text-xs">
-                {togglingMsg ? '…' : messagingEnabled ? 'ON' : 'OFF'}
-              </span>
-            </motion.button>
+            </div>
 
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -378,8 +374,8 @@ export default function AdminDashboard({ messagingEnabled, setMessagingEnabled }
                       </p>
 
                       <div className="mt-4 pt-3 border-t border-outline-variant/20 flex justify-between items-center flex-wrap gap-2">
-                        <span className="font-label-md text-xs uppercase tracking-widest text-error bg-error/5 border border-error/20 px-2 py-1 rounded">
-                          From: {msg.senderUsn}
+                        <span className={`font-label-md text-xs uppercase tracking-widest px-2 py-1 rounded border ${msg.isAnonymous ? 'text-outline-variant bg-surface-variant/30 border-outline-variant/30' : 'text-error bg-error/5 border-error/20'}`}>
+                          From: {msg.isAnonymous ? 'Anonymous' : msg.senderUsn}
                         </span>
                         <span className="font-body-sm text-xs text-on-surface-variant">
                           {new Date(msg.createdAt).toLocaleString('en-IN', {

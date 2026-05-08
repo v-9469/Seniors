@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {}
   },
+  photo: {
+    type: String,
+    default: null
+  },
   // Attendance tracking
   arrivedAt: {
     type: Date,

@@ -5,15 +5,17 @@ import Compose from './components/Compose';
 import Welcome from './components/Welcome';
 import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
+import WordCloudPhase from './components/WordCloudPhase';
+import VisibleDashboard from './components/VisibleDashboard';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState(null);
-  const [messagingEnabled, setMessagingEnabled] = useState(false);
+  const [phase, setPhase] = useState('welcome');
   const [checking, setChecking] = useState(true);
 
-  const apiUrl = `http://${window.location.hostname}:5000`;
+  const apiUrl = `http://${window.location.hostname}:12000`;
 
   useEffect(() => {
     // Validate cookie AND fetch messaging status in parallel
@@ -23,7 +25,7 @@ function App() {
         .catch(() => null),
       fetch(`${apiUrl}/api/settings`)
         .then(res => res.json())
-        .catch(() => ({ messagingEnabled: false }))
+        .catch(() => ({ phase: 'welcome' }))
     ]).then(([user, settings]) => {
       if (user) {
         if (user.role === 'admin') {
@@ -37,17 +39,17 @@ function App() {
       } else {
         localStorage.removeItem('usn');
       }
-      setMessagingEnabled(settings?.messagingEnabled ?? false);
+      setPhase(settings?.phase || 'welcome');
     }).finally(() => setChecking(false));
   }, []);
 
-  // Poll messaging status every 10s so the page opens automatically when admin enables it
+  // Poll phase every 10s so the page changes automatically when admin switches it
   useEffect(() => {
-    if (!isAuthenticated || isAdmin) return;
+    if (!isAuthenticated) return;
     const interval = setInterval(() => {
       fetch(`${apiUrl}/api/settings`)
         .then(res => res.json())
-        .then(data => setMessagingEnabled(data.messagingEnabled ?? false))
+        .then(data => setPhase(data.phase || 'welcome'))
         .catch(() => {});
     }, 10000);
     return () => clearInterval(interval);
@@ -72,8 +74,13 @@ function App() {
     );
   }
 
-  // Authenticated student sees either Welcome or Compose depending on messaging flag
-  const StudentView = messagingEnabled ? <Compose /> : <Welcome name={profile?.name} />;
+  // Authenticated student sees view depending on phase
+  let StudentView = <Welcome name={profile?.name} />;
+  if (phase === 'wordcloud') {
+    StudentView = <WordCloudPhase name={profile?.name} />;
+  } else if (phase === 'messaging') {
+    StudentView = <Compose />;
+  }
 
   return (
     <Router>
@@ -106,8 +113,16 @@ function App() {
         <Route
           path="/admin"
           element={
-            isAdmin ? <AdminDashboard messagingEnabled={messagingEnabled} setMessagingEnabled={setMessagingEnabled} /> :
+            isAdmin ? <AdminDashboard phase={phase} setPhase={setPhase} /> :
             isAuthenticated ? <Navigate to="/compose" /> :
+            <Navigate to="/admin-login" />
+          }
+        />
+        
+        <Route
+          path="/presentation"
+          element={
+            isAdmin ? <VisibleDashboard phase={phase} /> :
             <Navigate to="/admin-login" />
           }
         />

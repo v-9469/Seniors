@@ -4,9 +4,49 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Login({ setAuth }) {
   const [usn, setUsn] = useState('');
+  const [photoData, setPhotoData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to jpeg to save space
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setPhotoData(dataUrl);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -15,12 +55,12 @@ export default function Login({ setAuth }) {
     setIsLoading(true);
 
     try {
-      const apiUrl = `http://${window.location.hostname}:5000`;
+      const apiUrl = `http://${window.location.hostname}:12000`;
       const response = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ usn: usn.trim() })
+        body: JSON.stringify({ usn: usn.trim(), photoBase64: photoData })
       });
 
       if (response.ok) {
@@ -66,7 +106,7 @@ export default function Login({ setAuth }) {
               <span className="material-symbols-outlined text-primary" style={{ fontSize: '44px' }}>auto_stories</span>
             </motion.div>
             <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight leading-none mb-1">
-              Aura of Remembrance
+              Golden Hour
             </h1>
             <p className="font-body-sm text-on-surface-variant mt-2 italic">
               Leave a memory. Stay forever.
@@ -94,6 +134,34 @@ export default function Login({ setAuth }) {
                   disabled={isLoading}
                 />
                 <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline-variant text-xl pointer-events-none">badge</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <label className="block font-label-md text-label-md text-on-surface-variant mb-2 uppercase tracking-widest" htmlFor="photo">
+                Optional: Add your photo
+              </label>
+              <div className="relative flex items-center gap-3">
+                <input
+                  id="photo"
+                  name="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="photo" 
+                  className="cursor-pointer bg-surface border border-outline-variant px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-variant transition-colors text-on-surface flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">{photoData ? 'image' : 'add_a_photo'}</span>
+                  {photoData ? 'Change Photo' : 'Choose Photo'}
+                </label>
+                {photoData && (
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-primary flex-shrink-0">
+                    <img src={photoData} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
             </div>
 

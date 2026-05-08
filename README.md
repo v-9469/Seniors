@@ -1,4 +1,4 @@
-# 🎓 Aura of Remembrance
+# 🎓 Golden Hour
 
 > A nostalgic, anonymous messaging platform built for college farewell events. Students write heartfelt memories to their peers — delivered silently, remembered forever.
 

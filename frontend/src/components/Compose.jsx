@@ -39,6 +39,7 @@ export default function Compose() {
   const [recipient, setRecipient] = useState('');
   const [message, setMessage] = useState('');
   const [stamp, setStamp] = useState('favorite');
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [seniors, setSeniors] = useState([]);
@@ -48,7 +49,7 @@ export default function Compose() {
   const [toast, setToast] = useState(null);
   const comboRef = useRef(null);
 
-  const apiUrl = `http://${window.location.hostname}:5000`;
+  const apiUrl = `http://${window.location.hostname}:12000`;
 
   // Close combobox when clicking outside
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function Compose() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ recipientId: recipient, content: message.trim(), stamp })
+        body: JSON.stringify({ recipientId: recipient, content: message.trim(), stamp, isAnonymous })
       });
       if (response.ok) {
         setSent(true);
@@ -154,7 +155,7 @@ export default function Compose() {
         <div className="flex items-center justify-between px-4 md:px-8 py-3 max-w-3xl mx-auto">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-2xl">auto_stories</span>
-            <span className="font-headline-md text-primary font-semibold hidden sm:block">Aura</span>
+            <span className="font-headline-md text-primary font-semibold hidden sm:block">Golden Hour</span>
           </div>
 
           <h1 className="font-headline-md text-on-surface text-base font-medium absolute left-1/2 -translate-x-1/2">
@@ -362,10 +363,24 @@ export default function Compose() {
             </div>
           </div>
 
+          {/* ── Anonymous Checkbox ── */}
+          <div className="mb-6 flex items-center gap-3 bg-surface-container/30 p-3 rounded-xl border border-outline-variant/30">
+            <input 
+              type="checkbox" 
+              id="anonymous-check" 
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="w-5 h-5 accent-secondary rounded-sm cursor-pointer"
+            />
+            <label htmlFor="anonymous-check" className="font-body-sm text-sm text-on-surface cursor-pointer select-none">
+              Send this anonymously
+            </label>
+          </div>
+
           {/* ── Seal Button ── */}
           <div className="flex items-center justify-between">
             <p className="font-body-sm text-on-surface-variant/70 text-xs max-w-[60%]">
-              Delivered anonymously. Only you know you sent it.
+              {isAnonymous ? "Delivered anonymously. Only you know you sent it." : "Your name will be visible to the recipient."}
             </p>
 
             <motion.button
@@ -404,7 +419,7 @@ export default function Compose() {
           <div className="flex gap-2 items-start">
             <span className="material-symbols-outlined text-tertiary text-base mt-0.5">lock</span>
             <p className="font-body-sm text-on-tertiary-fixed-variant text-xs">
-              Your identity is never revealed to the recipient.
+              Make it memorable. Your messages will be exported to a PDF for them!
             </p>
           </div>
         </motion.div>

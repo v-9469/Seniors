@@ -16,7 +16,7 @@ export default function AdminLogin({ setAuth }) {
     setIsLoading(true);
 
     try {
-      const apiUrl = `http://${window.location.hostname}:5000`;
+      const apiUrl = `http://${window.location.hostname}:12000`;
       const response = await fetch(`${apiUrl}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

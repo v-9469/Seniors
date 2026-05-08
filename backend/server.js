@@ -6,14 +6,15 @@ const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Message = require('./models/Message');
 const Settings = require('./models/Settings');
+const Word = require('./models/Word');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 12000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // ── Security & Performance Middleware ──────────────────────────────────────
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '16kb' }));           // Reject huge bodies
+app.use(express.json({ limit: '10mb' }));           // Reject huge bodies
 app.use(cookieParser());
 
 // (Rate limits removed to avoid needing npm install on user machine)
@@ -32,8 +33,8 @@ mongoose.connect(
     console.log('MongoDB connected');
     // Ensure default settings exist
     await Settings.findOneAndUpdate(
-      { key: 'messagingEnabled' },
-      { $setOnInsert: { key: 'messagingEnabled', value: false } },
+      { key: 'phase' },
+      { $setOnInsert: { key: 'phase', value: 'welcome' } },
       { upsert: true, new: true }
     );
   })
@@ -42,13 +43,13 @@ mongoose.connect(
 // ── In-Memory Settings Cache ───────────────────────────────────────────────
 // 100 users polling /api/settings every 10s = 10 req/s.
 // Cache result for 5 seconds to collapse those into rare DB reads.
-let settingsCache = { messagingEnabled: false, expiresAt: 0 };
+let settingsCache = { phase: 'welcome', expiresAt: 0 };
 
 async function getSettingsCached() {
   if (Date.now() < settingsCache.expiresAt) return settingsCache;
-  const setting = await Settings.findOne({ key: 'messagingEnabled' });
+  const setting = await Settings.findOne({ key: 'phase' });
   settingsCache = {
-    messagingEnabled: setting ? setting.value : false,
+    phase: setting ? setting.value : 'welcome',
     expiresAt: Date.now() + 5000
   };
   return settingsCache;
@@ -102,7 +103,7 @@ app.post('/api/admin/login', async (req, res) => {
 
 // ── Student Login ──────────────────────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
-  const { usn } = req.body;
+  const { usn, photoBase64 } = req.body;
   if (!usn) return res.status(400).json({ error: 'USN is required' });
 
   try {
@@ -114,17 +115,30 @@ app.post('/api/login', async (req, res) => {
     // Mark as arrived if this is their first login
     const alreadyArrived = !!user.arrivedAt;
     let newArrivedAt = user.arrivedAt;
-    
+
+    let userUpdated = false;
+    if (photoBase64) {
+      user.photo = photoBase64;
+      userUpdated = true;
+    }
+
     if (!alreadyArrived) {
       newArrivedAt = new Date();
       user.arrivedAt = newArrivedAt;
+      userUpdated = true;
+    }
+
+    if (userUpdated) {
       await user.save();
-      
-      broadcastArrival({
+    }
+
+    if (!alreadyArrived) {
+      broadcastSSE({
         type: 'arrival',
         userId: user._id,
         name: user.name || user.usn,
         usn: user.usn,
+        photo: user.photo,
         arrivedAt: newArrivedAt
       });
     }
@@ -136,7 +150,7 @@ app.post('/api/login', async (req, res) => {
         ip: req.ip,
         lastLogin: new Date()
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     const token = jwt.sign({ id: user._id, usn: user.usn }, JWT_SECRET, { expiresIn: '24h' });
     res.cookie('token', token, {
@@ -162,23 +176,63 @@ app.post('/api/logout', (req, res) => {
 app.get('/api/settings', async (req, res) => {
   try {
     const cached = await getSettingsCached();
-    res.json({ messagingEnabled: cached.messagingEnabled });
+    res.json({ phase: cached.phase });
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ── Admin: Toggle Messaging ────────────────────────────────────────────────
-app.post('/api/admin/settings/messaging', requireAdmin, async (req, res) => {
+// ── Admin: Toggle Phase ────────────────────────────────────────────────────
+app.post('/api/admin/settings/phase', requireAdmin, async (req, res) => {
   try {
-    const { enabled } = req.body;
+    const { phase } = req.body;
     await Settings.findOneAndUpdate(
-      { key: 'messagingEnabled' },
-      { value: enabled },
+      { key: 'phase' },
+      { value: phase },
       { upsert: true }
     );
     invalidateSettingsCache(); // Flush cache immediately
-    res.json({ messagingEnabled: enabled });
+    res.json({ phase });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Words (Phase 1) ────────────────────────────────────────────────────────
+app.post('/api/words', authenticate, async (req, res) => {
+  const { text } = req.body;
+  if (!text || text.trim().length === 0) return res.status(400).json({ error: 'Word cannot be empty' });
+  if (text.length > 50) return res.status(400).json({ error: 'Word too long' });
+
+  try {
+    const cached = await getSettingsCached();
+    if (cached.phase !== 'wordcloud') {
+      return res.status(403).json({ error: 'Word cloud phase is not active.' });
+    }
+
+    const newWord = new Word({
+      text: text.trim(),
+      senderUsn: req.user.usn
+    });
+    await newWord.save();
+
+    broadcastSSE({
+      type: 'word',
+      text: newWord.text,
+      id: newWord._id
+    });
+
+    res.status(201).json({ message: 'Word submitted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/words', async (req, res) => {
+  try {
+    const words = await Word.find({}).sort({ createdAt: -1 }).limit(300);
+    res.json(words);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -186,7 +240,7 @@ app.post('/api/admin/settings/messaging', requireAdmin, async (req, res) => {
 
 // ── Send Message ───────────────────────────────────────────────────────────
 app.post('/api/messages', authenticate, async (req, res) => {
-  const { recipientId, content, stamp } = req.body;
+  const { recipientId, content, stamp, isAnonymous } = req.body;
   if (!recipientId || !content) {
     return res.status(400).json({ error: 'Recipient and content are required' });
   }
@@ -196,17 +250,28 @@ app.post('/api/messages', authenticate, async (req, res) => {
 
   try {
     const cached = await getSettingsCached();
-    if (!cached.messagingEnabled) {
-      return res.status(403).json({ error: 'Messaging is not open yet. Please wait for the event to begin.' });
+    if (cached.phase !== 'messaging') {
+      return res.status(403).json({ error: 'Messaging is not open yet.' });
     }
 
     const newMessage = new Message({
       recipient: recipientId,
       content,
       stamp: stamp || 'favorite',
-      senderUsn: req.user.usn
+      senderUsn: req.user.usn,
+      isAnonymous: !!isAnonymous
     });
     await newMessage.save();
+
+    // Fetch recipient for the broadcast
+    const recipientUser = await User.findById(recipientId).select('name usn').lean();
+    if (recipientUser) {
+      broadcastSSE({
+        type: 'message_sent',
+        recipientName: recipientUser.name || recipientUser.usn
+      });
+    }
+
     res.status(201).json({ message: 'Message sent successfully' });
   } catch (err) {
     console.error(err);
@@ -243,7 +308,7 @@ app.get('/api/seniors', async (req, res) => {
 // SSE client store — broadcast arrivals to all connected admin dashboards
 const sseClients = new Set();
 
-function broadcastArrival(payload) {
+function broadcastSSE(payload) {
   const data = `data: ${JSON.stringify(payload)}\n\n`;
   for (const client of sseClients) {
     try { client.write(data); } catch { sseClients.delete(client); }
@@ -286,7 +351,7 @@ app.get('/api/scan/:token', async (req, res) => {
     if (!alreadyArrived) {
       user.arrivedAt = new Date();
       await user.save();
-      broadcastArrival({
+      broadcastSSE({
         type: 'arrival',
         userId: user._id,
         name: user.name || user.usn,
@@ -310,7 +375,7 @@ function scanHtml(name, message, success, duplicate = false) {
   const icon = success ? (duplicate ? '👋' : '🎉') : '❌';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Aura of Remembrance — Check In</title>
+  <title>Golden Hour — Check In</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,sans-serif;background:#fff8f5;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}.card{background:#fff;border-radius:20px;padding:40px 32px;text-align:center;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.1)}.icon{font-size:64px;margin-bottom:20px}.name{font-size:26px;font-weight:700;color:#1e1b19;margin-bottom:8px}.msg{font-size:16px;color:#42474c;line-height:1.6}.badge{display:inline-block;margin-top:20px;background:${color};color:#fff;padding:8px 20px;border-radius:999px;font-size:14px;font-weight:600}</style>
   </head><body><div class="card">
   <div class="icon">${icon}</div>
@@ -323,7 +388,7 @@ function scanHtml(name, message, success, duplicate = false) {
 // Admin: get all students with attendance status
 app.get('/api/admin/attendance', requireAdmin, async (req, res) => {
   try {
-    const users = await User.find({}).select('name usn _id arrivedAt scanToken').lean();
+    const users = await User.find({}).select('name usn _id arrivedAt scanToken photo').lean();
     res.json(users);
   } catch {
     res.status(500).json({ error: 'Internal server error' });

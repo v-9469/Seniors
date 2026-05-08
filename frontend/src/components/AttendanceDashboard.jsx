@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// DiceBear avatar — deterministic per USN, no internet fallback = initials circle
-const avatarUrl = (seed) =>
-  `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&shapeColor=0a5b83,1c799f,69d2e7`;
-
 // ── Phyllotaxis (sunflower) layout ────────────────────────────────────────
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 function getPos(index, total, W, H) {
@@ -18,10 +14,18 @@ function getQrUrl(url) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&qzone=2&data=${encodeURIComponent(url)}`;
 }
 
-// ── Initials avatar fallback ──────────────────────────────────────────────
-function InitialsAvatar({ name, size = 40 }) {
-  const initials = (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const hue = [...(name || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+// ── User Avatar (Photo or Initials fallback) ──────────────────────────────
+function UserAvatar({ user, size = 40 }) {
+  if (user.photo) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+        <img src={user.photo} alt={user.name || user.usn} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+    );
+  }
+  const name = user.name || user.usn || '?';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const hue = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%', fontSize: size * 0.36, fontWeight: 700,
@@ -42,7 +46,7 @@ export default function AttendanceDashboard({ onClose }) {
   const [activeCelebration, setActiveCelebration] = useState(null);
   const graphRef = useRef(null);
 
-  const apiUrl = `http://${window.location.hostname}:5000`;
+  const apiUrl = `http://${window.location.hostname}:12000`;
   const hostname = window.location.hostname;
 
   // ── Initial load ─────────────────────────────────────────────────────────
@@ -78,7 +82,7 @@ export default function AttendanceDashboard({ onClose }) {
   // ── Manual Check In (for admin testing/fallback) ─────────────────────────
   const manualCheckIn = async (token) => {
     try {
-      const res = await fetch(`http://${hostname}:5000/api/scan/${token}`);
+      const res = await fetch(`http://${hostname}:12000/api/scan/${token}`);
       if (res.ok) {
         setQrModal(prev => prev ? { ...prev, arrivedAt: new Date().toISOString() } : null);
       }
@@ -150,19 +154,19 @@ export default function AttendanceDashboard({ onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-gray-950 flex flex-col text-white"
+      className="min-h-screen bg-background flex flex-col text-on-background relative"
     >
       {/* ── Top Bar ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20 flex-shrink-0">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="font-headline-lg text-2xl font-bold text-white tracking-tight">Who's Here?</h1>
-            <p className="text-xs text-white/50 mt-0.5">Live attendance · Farewell 2025</p>
+            <h1 className="font-headline-lg text-2xl font-bold text-on-surface tracking-tight">Who's Here?</h1>
+            <p className="text-xs text-on-surface-variant mt-0.5">Live attendance · Farewell 2025</p>
           </div>
 
           {/* SSE status */}
-          <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${liveConnected ? 'border-green-500/30 text-green-400' : 'border-white/20 text-white/40'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${liveConnected ? 'bg-green-400 animate-pulse' : 'bg-white/30'}`} />
+          <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${liveConnected ? 'border-green-500/30 text-green-600' : 'border-outline-variant/50 text-on-surface-variant'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${liveConnected ? 'bg-green-500 animate-pulse' : 'bg-outline-variant'}`} />
             {liveConnected ? 'Live' : 'Connecting…'}
           </div>
         </div>
@@ -170,12 +174,12 @@ export default function AttendanceDashboard({ onClose }) {
         {/* Stats */}
         <div className="flex items-center gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-white tabular-nums">{arrivedCount}</div>
-            <div className="text-xs text-white/40">Arrived</div>
+            <div className="text-3xl font-bold text-on-surface tabular-nums">{arrivedCount}</div>
+            <div className="text-xs text-on-surface-variant">Arrived</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-white/30 tabular-nums">{total}</div>
-            <div className="text-xs text-white/40">Expected</div>
+            <div className="text-3xl font-bold text-on-surface-variant/50 tabular-nums">{total}</div>
+            <div className="text-xs text-on-surface-variant">Expected</div>
           </div>
           <div className="w-16 h-16 relative">
             <svg viewBox="0 0 36 36" className="rotate-[-90deg] w-full h-full">
@@ -192,10 +196,6 @@ export default function AttendanceDashboard({ onClose }) {
             <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-green-400">{pct}%</div>
           </div>
         </div>
-
-        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-          <span className="material-symbols-outlined text-white/60 hover:text-white">close</span>
-        </button>
       </div>
 
       {/* ── Main Area ───────────────────────────────────────────────────── */}
@@ -204,7 +204,7 @@ export default function AttendanceDashboard({ onClose }) {
         {/* Network Graph */}
         <div ref={graphRef} className="flex-1 relative overflow-hidden">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center text-white/40">Loading students…</div>
+            <div className="absolute inset-0 flex items-center justify-center text-on-surface-variant">Loading students…</div>
           ) : (
             <>
               {/* SVG connection lines */}
@@ -265,13 +265,8 @@ export default function AttendanceDashboard({ onClose }) {
                           className="absolute inset-0 rounded-full bg-green-400/30"
                         />
                         {/* Avatar */}
-                        <div className="w-[52px] h-[52px] rounded-full overflow-hidden border-2 border-green-400 shadow-lg shadow-green-400/30 relative z-10">
-                          <img
-                            src={avatarUrl(student.usn)}
-                            alt={student.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
+                        <div className="w-[52px] h-[52px] rounded-full overflow-hidden border-2 border-green-400 shadow-lg shadow-green-400/30 relative z-10 bg-surface flex items-center justify-center">
+                          <UserAvatar user={student} size={52} />
                         </div>
                         {/* Name tooltip */}
                         <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
@@ -280,7 +275,7 @@ export default function AttendanceDashboard({ onClose }) {
                       </motion.div>
                     ) : (
                       <div
-                        className="w-5 h-5 rounded-full bg-white/30 border border-white/50 cursor-pointer hover:bg-white/50 transition-colors shadow-sm"
+                        className="w-5 h-5 rounded-full bg-outline-variant/30 border border-outline-variant cursor-pointer hover:bg-outline-variant transition-colors shadow-sm"
                         onClick={() => setQrModal(student)}
                         title={student.name}
                       />
@@ -293,14 +288,14 @@ export default function AttendanceDashboard({ onClose }) {
         </div>
 
         {/* ── Right Panel: Recent Arrivals ─────────────────────────────── */}
-        <div className="w-72 flex-shrink-0 border-l border-white/10 flex flex-col bg-white/3">
-          <div className="px-4 pt-4 pb-2 border-b border-white/10">
-            <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Recent Arrivals</h2>
+        <div className="w-72 flex-shrink-0 border-l border-outline-variant/20 flex flex-col bg-surface/50">
+          <div className="px-4 pt-4 pb-2 border-b border-outline-variant/20">
+            <h2 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider">Recent Arrivals</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             <AnimatePresence initial={false}>
               {recentArrivals.length === 0 ? (
-                <p className="text-xs text-white/30 text-center py-8">Waiting for guests…</p>
+                <p className="text-xs text-on-surface-variant text-center py-8">Waiting for guests…</p>
               ) : recentArrivals.map((a, i) => (
                 <motion.div
                   key={`${a.userId}-${a.arrivedAt}`}
@@ -310,14 +305,13 @@ export default function AttendanceDashboard({ onClose }) {
                   transition={{ duration: 0.4 }}
                   className={`flex items-center gap-3 p-3 rounded-xl ${i === 0 ? 'bg-green-500/15 border border-green-500/30' : 'bg-white/5'}`}
                 >
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-green-400/50 flex-shrink-0">
-                    <img src={avatarUrl(a.usn)} alt={a.name} className="w-full h-full object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }} />
+                  <div className="flex-shrink-0 border-2 border-green-400/50 rounded-full">
+                    <UserAvatar user={a} size={40} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm text-white truncate">{a.name || a.usn}</p>
-                    <p className="text-xs text-white/40">{a.usn}</p>
-                    <p className="text-xs text-green-400 mt-0.5">
+                    <p className="font-semibold text-sm text-on-surface truncate">{a.name || a.usn}</p>
+                    <p className="text-xs text-on-surface-variant">{a.usn}</p>
+                    <p className="text-xs text-green-600 mt-0.5">
                       {new Date(a.arrivedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -328,13 +322,13 @@ export default function AttendanceDashboard({ onClose }) {
           </div>
 
           {/* Legend */}
-              <div className="p-4 border-t border-white/10 space-y-2">
-            <div className="flex items-center gap-2 text-xs text-white/40">
+          <div className="p-4 border-t border-outline-variant/20 space-y-2">
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
               <div className="w-3 h-3 rounded-full bg-green-400 border border-green-300" />
               Arrived — click node for details
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/40">
-              <div className="w-3 h-3 rounded-full bg-white/30 border border-white/50" />
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+              <div className="w-3 h-3 rounded-full bg-outline-variant/30 border border-outline-variant" />
               Not yet arrived — click node for QR
             </div>
           </div>
@@ -359,7 +353,7 @@ export default function AttendanceDashboard({ onClose }) {
               className="bg-white rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl"
             >
               <div className="flex justify-center mb-4">
-                <InitialsAvatar name={qrModal.name || qrModal.usn} size={56} />
+                <UserAvatar user={qrModal} size={56} />
               </div>
               <h3 className="font-headline-md text-on-surface text-lg font-bold mb-1">{qrModal.name || 'Unknown'}</h3>
               <p className="text-sm text-on-surface-variant mb-4">{qrModal.usn}</p>
@@ -367,7 +361,7 @@ export default function AttendanceDashboard({ onClose }) {
               {qrModal.scanToken ? (
                 <>
                   <img
-                    src={getQrUrl(`http://${hostname}:5000/api/scan/${qrModal.scanToken}`)}
+                    src={getQrUrl(`http://${hostname}:12000/api/scan/${qrModal.scanToken}`)}
                     alt="QR Code"
                     className="w-52 h-52 mx-auto rounded-lg mb-3"
                   />
@@ -448,13 +442,9 @@ export default function AttendanceDashboard({ onClose }) {
                 initial={{ rotate: -180, scale: 0 }}
                 animate={{ rotate: 0, scale: 1 }}
                 transition={{ type: "spring", stiffness: 150, damping: 15, delay: 0.2 }}
-                className="w-56 h-56 rounded-full border-4 border-green-400 shadow-[0_0_80px_rgba(74,222,128,0.5)] overflow-hidden bg-white/10 mb-8 z-10"
+                className="w-56 h-56 rounded-full border-4 border-green-400 shadow-[0_0_80px_rgba(74,222,128,0.5)] overflow-hidden bg-white/10 mb-8 z-10 flex items-center justify-center"
               >
-                <img
-                  src={`https://picsum.photos/seed/${activeCelebration.usn}/600/600`}
-                  alt="Cool random celebration"
-                  className="w-full h-full object-cover"
-                />
+                <UserAvatar user={activeCelebration} size={224} />
               </motion.div>
               
               <motion.h2 
