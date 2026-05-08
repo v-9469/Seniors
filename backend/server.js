@@ -20,26 +20,34 @@ app.use(cookieParser());
 // (Rate limits removed to avoid needing npm install on user machine)
 
 // ── MongoDB Connection (pool sized for 100 users) ──────────────────────────
-mongoose.connect(
-  process.env.MONGODB_URI || 'mongodb://localhost:27017/seniors',
-  {
-    maxPoolSize: 50,          // Up to 50 simultaneous DB operations
-    minPoolSize: 5,           // Keep 5 connections warm at idle
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-    family: 4,
-  }
-)
-  .then(async () => {
-    console.log('MongoDB connected');
-    // Ensure default settings exist
-    await Settings.findOneAndUpdate(
-      { key: 'phase' },
-      { $setOnInsert: { key: 'phase', value: 'welcome' } },
-      { upsert: true, new: true }
-    );
-  })
-  .catch(err => console.error('MongoDB error:', err));
+const connectDB = () => {
+  mongoose.connect(
+    process.env.MONGODB_URI || 'mongodb://localhost:27017/seniors',
+    {
+      maxPoolSize: 50,          // Up to 50 simultaneous DB operations
+      minPoolSize: 5,           // Keep 5 connections warm at idle
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      family: 4,
+    }
+  )
+    .then(async () => {
+      console.log('MongoDB connected');
+      // Ensure default settings exist
+      await Settings.findOneAndUpdate(
+        { key: 'phase' },
+        { $setOnInsert: { key: 'phase', value: 'welcome' } },
+        { upsert: true, new: true }
+      );
+    })
+    .catch(err => {
+      console.error('MongoDB error:', err.message);
+      console.log('Retrying MongoDB connection in 5 seconds...');
+      setTimeout(connectDB, 5000);
+    });
+};
+
+connectDB();
 
 // ── In-Memory Settings Cache ───────────────────────────────────────────────
 // 100 users polling /api/settings every 10s = 10 req/s.

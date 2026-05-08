@@ -10,6 +10,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     ports:
       - "12000:12000"
     volumes:
@@ -25,8 +26,9 @@ services:
 
   mongodb:
     image: mongo:6
+    restart: unless-stopped
     ports:
-      - "27018:27017"
+      - "27018:27018"
     volumes:
       - mongo_data:/data/db
 
