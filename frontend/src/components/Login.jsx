@@ -89,19 +89,22 @@ export default function Login({ setAuth }) {
         initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md relative"
+        className="w-full max-w-sm relative"
       >
-        <div className="paper-texture polaroid-shadow rounded-[2rem] px-8 py-10 md:px-10 md:py-12 relative z-10 border border-outline-variant/20">
+        {/* Tape decoration */}
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-7 bg-surface-variant/70 rounded-sm shadow-sm rotate-1 z-20" />
+
+        <div className="paper-texture polaroid-shadow rounded-2xl px-8 py-10 relative z-10">
 
           {/* Icon & Title */}
           <div className="text-center mb-8">
-            <motion.div
-              animate={{ y: [0, -2, 0] }}
+            {/*<motion.div
+              animate={{ rotate: [0, -3, 3, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary/15 via-surface to-secondary/15 border border-outline-variant/20 shadow-sm mb-4"
+              className="inline-block mb-3"
             >
-              <span className="material-symbols-outlined text-primary" style={{ fontSize: '40px' }}>photo_library</span>
-            </motion.div>
+              <span className="material-symbols-outlined text-primary" style={{ fontSize: '44px' }}>auto_stories</span>
+            </motion.div>*/}
             <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight leading-none mb-1">
               Golden Hour
             </h1>
@@ -135,43 +138,30 @@ export default function Login({ setAuth }) {
             </div>
 
             <div className="pt-2">
-              <input
-                id="photo"
-                name="photo"
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
-              <div className="rounded-2xl border border-outline-variant/30 bg-surface-container/40 p-4">
-                <div className="flex items-center gap-4">
-                  <div className="min-w-0 flex-1">
-                    <label className="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-widest" htmlFor="photo">
-                      Optional: Add your photo
-                    </label>
-                    <p className="font-body-sm text-on-surface-variant/80 text-sm">
-                      Pick a portrait so your message feels personal.
-                    </p>
-                    <label
-                      htmlFor="photo"
-                      className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-outline-variant/60 bg-surface px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:bg-surface-variant"
-                    >
-                      <span className="material-symbols-outlined text-lg">{photoData ? 'image' : 'add_a_photo'}</span>
-                      {photoData ? 'Change Photo' : 'Choose Photo'}
-                    </label>
+              <label className="block font-label-md text-label-md text-on-surface-variant mb-2 uppercase tracking-widest" htmlFor="photo">
+                Optional: Add your photo
+              </label>
+              <div className="relative flex items-center gap-3">
+                <input
+                  id="photo"
+                  name="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="photo" 
+                  className="cursor-pointer bg-surface border border-outline-variant px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-variant transition-colors text-on-surface flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">{photoData ? 'image' : 'add_a_photo'}</span>
+                  {photoData ? 'Change Photo' : 'Choose Photo'}
+                </label>
+                {photoData && (
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-primary flex-shrink-0">
+                    <img src={photoData} alt="Preview" className="w-full h-full object-cover" />
                   </div>
-                  <div className="shrink-0">
-                    {photoData ? (
-                      <div className="h-16 w-16 overflow-hidden rounded-2xl border border-primary/30 shadow-sm">
-                        <img src={photoData} alt="Preview" className="h-full w-full object-cover" />
-                      </div>
-                    ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-dashed border-outline-variant/50 bg-surface text-outline-variant">
-                        <span className="material-symbols-outlined text-2xl">photo_camera</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -215,7 +205,7 @@ export default function Login({ setAuth }) {
           </form>
 
           <p className="text-center font-body-sm text-on-surface-variant/60 mt-6 text-xs">
-            A digital keepsake for the Class of 2026
+            A digital keepsake for the Class of 2025
           </p>
         </div>
       </motion.main>
