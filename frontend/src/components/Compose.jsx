@@ -47,6 +47,8 @@ export default function Compose({ onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [comboOpen, setComboOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [anonCount, setAnonCount] = useState(0);
+  const [recipientSent, setRecipientSent] = useState(false);
   const comboRef = useRef(null);
 
   const apiUrl = '';
@@ -81,6 +83,26 @@ export default function Compose({ onClose }) {
         window.location.href = '/login';
       });
   }, []);
+
+  // Fetch anonymous message count
+  useEffect(() => {
+    fetch(`${apiUrl}/api/messages/anon-count`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : { count: 0 })
+      .then(data => setAnonCount(data.count))
+      .catch(() => {});
+  }, []);
+
+  // Check if message sent to selected recipient
+  useEffect(() => {
+    if (!recipient) {
+      setRecipientSent(false);
+      return;
+    }
+    fetch(`${apiUrl}/api/messages/check-sent?recipientId=${recipient}`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : { sent: false })
+      .then(data => setRecipientSent(data.sent))
+      .catch(() => {});
+  }, [recipient]);
 
   const handleSeal = async () => {
     if (!recipient) {
@@ -208,6 +230,25 @@ export default function Compose({ onClose }) {
           </motion.div>
         )}
 
+        {/* Rules */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6 p-4 bg-surface-container-low rounded-xl border border-outline-variant/20"
+        >
+          <p className="font-label-md text-xs uppercase tracking-wider text-on-surface-variant mb-2">Sending Rules</p>
+          <ul className="space-y-1 text-sm text-on-surface-variant">
+            <li className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">info</span>
+              You can send up to 3 anonymous messages ({anonCount}/3 used)
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">info</span>
+              You can only send 1 message per person (including anonymous)
+            </li>
+          </ul>
+        </motion.div>
+
         {/* ── Letter Card ── */}
         <motion.div
           initial={{ opacity: 0, y: 50, rotate: -2, scale: 0.95 }}
@@ -246,6 +287,9 @@ export default function Compose({ onClose }) {
                       <span className="font-body-md text-on-background font-medium">{selectedSenior.name}</span>
                       <span className="ml-2 font-body-sm text-xs text-on-surface-variant">{selectedSenior.usn}</span>
                     </div>
+                    {recipientSent && (
+                      <span className="font-label-md text-xs text-error">Already sent</span>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setRecipient(''); setSearchTerm(''); }}
@@ -376,15 +420,16 @@ export default function Compose({ onClose }) {
 
           {/* ── Anonymous Checkbox ── */}
           <div className="mb-6 flex items-center gap-3 bg-surface-container/30 p-3 rounded-xl border border-outline-variant/30">
-            <input 
-              type="checkbox" 
-              id="anonymous-check" 
+            <input
+              type="checkbox"
+              id="anonymous-check"
               checked={isAnonymous}
               onChange={(e) => setIsAnonymous(e.target.checked)}
-              className="w-5 h-5 accent-secondary rounded-sm cursor-pointer"
+              disabled={anonCount >= 3}
+              className="w-5 h-5 accent-secondary rounded-sm cursor-pointer disabled:opacity-50"
             />
-            <label htmlFor="anonymous-check" className="font-body-sm text-sm text-on-surface cursor-pointer select-none">
-              Send this anonymously
+            <label htmlFor="anonymous-check" className={`font-body-sm text-sm cursor-pointer select-none ${anonCount >= 3 ? 'text-on-surface-variant/50' : 'text-on-surface'}`}>
+              Send this anonymously ({3 - anonCount} remaining)
             </label>
           </div>
 

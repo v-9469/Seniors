@@ -322,6 +322,30 @@ app.post('/api/messages', authenticate, async (req, res) => {
   }
 });
 
+// ── Get Anonymous Message Count ────────────────────────────────────────
+app.get('/api/messages/anon-count', authenticate, async (req, res) => {
+  try {
+    const count = await Message.countDocuments({ senderUsn: req.user.usn, isAnonymous: true });
+    res.json({ count });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Check if Message Sent to Recipient ─────────────────────────────────
+app.get('/api/messages/check-sent', authenticate, async (req, res) => {
+  try {
+    const { recipientId } = req.query;
+    if (!recipientId) {
+      return res.status(400).json({ error: 'recipientId query parameter is required' });
+    }
+    const exists = await Message.exists({ senderUsn: req.user.usn, recipient: recipientId });
+    res.json({ sent: !!exists });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── Get Messages (public, no senderUsn) ───────────────────────────────────
 app.get('/api/messages/:recipientId', async (req, res) => {
   try {
