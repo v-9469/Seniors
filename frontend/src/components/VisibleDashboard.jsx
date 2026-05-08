@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import AttendanceDashboard from './AttendanceDashboard';
 import AdminWordCloud from './AdminWordCloud';
+import JammingPhase from './JammingPhase';
 
 export default function VisibleDashboard({ phase, onClose }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -88,6 +89,8 @@ export default function VisibleDashboard({ phase, onClose }) {
         </div>
       </motion.div>
     );
+  } else if (phase === 'jamming') {
+    content = <JammingPhase />;
   } else {
     // phase === 'messaging'
     content = (

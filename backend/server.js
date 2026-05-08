@@ -191,6 +191,23 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
+// ── Public: Lyrics ──────────────────────────────────────────────────────────
+const fs = require('fs');
+const path = require('path');
+app.get('/api/lyrics', (req, res) => {
+  try {
+    const lyricsPath = path.join(__dirname, 'lyrics.txt');
+    if (fs.existsSync(lyricsPath)) {
+      const text = fs.readFileSync(lyricsPath, 'utf-8');
+      res.json({ text });
+    } else {
+      res.json({ text: 'Lyrics not found.' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read lyrics' });
+  }
+});
+
 // ── Admin: Toggle Phase ────────────────────────────────────────────────────
 app.post('/api/admin/settings/phase', requireAdmin, async (req, res) => {
   try {

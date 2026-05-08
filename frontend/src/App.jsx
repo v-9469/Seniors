@@ -80,6 +80,14 @@ function App() {
     StudentView = <WordCloudPhase name={profile?.name} />;
   } else if (phase === 'messaging') {
     StudentView = <Compose />;
+  } else if (phase === 'jamming') {
+    StudentView = (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <span className="material-symbols-outlined text-6xl text-purple-400 mb-4 animate-bounce">music_note</span>
+        <h2 className="text-3xl font-bold text-on-surface mb-2">Jamming Session!</h2>
+        <p className="text-on-surface-variant text-lg">Look at the main screen to sing along to the lyrics!</p>
+      </div>
+    );
   }
 
   return (
