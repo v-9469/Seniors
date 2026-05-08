@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminWordCloud() {
   const [wordsList, setWordsList] = useState([]);
-  const apiUrl = `http://${window.location.hostname}:12000`;
+  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
 
   // Fetch initial words
   useEffect(() => {

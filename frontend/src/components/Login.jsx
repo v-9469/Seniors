@@ -55,7 +55,7 @@ export default function Login({ setAuth }) {
     setIsLoading(true);
 
     try {
-      const apiUrl = `http://${window.location.hostname}:12000`;
+      const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
       const response = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

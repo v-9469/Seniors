@@ -46,7 +46,7 @@ export default function AttendanceDashboard({ onClose }) {
   const [activeCelebration, setActiveCelebration] = useState(null);
   const graphRef = useRef(null);
 
-  const apiUrl = `http://${window.location.hostname}:12000`;
+  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
   const hostname = window.location.hostname;
 
   // ── Initial load ─────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ export default function AttendanceDashboard({ onClose }) {
   // ── Manual Check In (for admin testing/fallback) ─────────────────────────
   const manualCheckIn = async (token) => {
     try {
-      const res = await fetch(`http://${hostname}:12000/api/scan/${token}`);
+      const res = await fetch(`${apiUrl}/api/scan/${token}`);
       if (res.ok) {
         setQrModal(prev => prev ? { ...prev, arrivedAt: new Date().toISOString() } : null);
       }
@@ -361,7 +361,7 @@ export default function AttendanceDashboard({ onClose }) {
               {qrModal.scanToken ? (
                 <>
                   <img
-                    src={getQrUrl(`http://${hostname}:12000/api/scan/${qrModal.scanToken}`)}
+                    src={getQrUrl(`${apiUrl}/api/scan/${qrModal.scanToken}`)}
                     alt="QR Code"
                     className="w-52 h-52 mx-auto rounded-lg mb-3"
                   />

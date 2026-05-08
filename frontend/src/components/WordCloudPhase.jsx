@@ -6,7 +6,7 @@ export default function WordCloudPhase({ name }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
 
-  const apiUrl = `http://${window.location.hostname}:12000`;
+  const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -27,7 +27,7 @@ export default function VisibleDashboard({ phase, onClose }) {
 
   // Listen to SSE
   useEffect(() => {
-    const apiUrl = `http://${window.location.hostname}:12000`;
+    const apiUrl = import.meta.env.PROD ? 'http://goldenhour.assetiq.dpdns.org:12000' : `http://${window.location.hostname}:12000`;
     const eventSource = new EventSource(`${apiUrl}/api/attendance/stream`, { withCredentials: true });
     
     eventSource.onmessage = (e) => {
