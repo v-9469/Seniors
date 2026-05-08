@@ -1,11 +1,17 @@
 const mongoose = require('mongoose');
 const xlsx = require('xlsx');
 const crypto = require('crypto');
+const path = require('path');
 const User = require('./models/User');
 
 // Configure these variables based on your Excel file
-const EXCEL_FILE_PATH = './users.csv'; // Assuming you place the excel/csv file in the backend folder
+const EXCEL_FILE_PATH = path.join(__dirname, 'users.csv');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/seniors';
+
+function normalizeCellValue(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim().replace(/\s+/g, ' ');
+}
 
 async function importUsers() {
   try {
@@ -25,8 +31,8 @@ async function importUsers() {
     
     for (const row of data) {
       // Adjust the property names 'USN' and 'Name' based on your exact Excel column headers!
-      const usn = row['USN'] || row['usn'];
-      const name = row['Name'] || row['name'];
+      const usn = normalizeCellValue(row['USN'] ?? row['usn']);
+      const name = normalizeCellValue(row['Name'] ?? row['name']);
 
       if (!usn) {
         console.warn(`Skipping row due to missing USN:`, row);
@@ -37,10 +43,11 @@ async function importUsers() {
       delete otherDetails['USN']; delete otherDetails['usn'];
       delete otherDetails['Name']; delete otherDetails['name'];
 
-      const existingUser = await User.findOne({ usn: usn.toUpperCase() });
+      const normalizedUsn = usn.toUpperCase();
+      const existingUser = await User.findOne({ usn: normalizedUsn });
       if (!existingUser) {
         const user = new User({ 
-          usn: usn.toUpperCase(),
+          usn: normalizedUsn,
           name: name || '',
           otherDetails
         });
