@@ -145,19 +145,21 @@ function drawMessageCard(doc, msg, index, y, usnToName, imageDim) {
   const bodyHeight = lines.length * lineHeight;
   let totalCardHeight = bodyHeight + cardPadding * 2 + 14; // extra for attribution
 
-  // Add image height if present and imageDim available
-  let imageHeight = 0;
-  if (msg.imageUrl && imageDim) {
-    // Calculate display dimensions preserving aspect ratio
+  // Calculate image dimensions preserving aspect ratio
+  let imgDisplayW = 0;
+  let imgDisplayH = 0;
+  if (msg.imageUrl && imageDim && imageDim.height > 0) {
     const aspectRatio = imageDim.width / imageDim.height;
-    const imgDisplayW = CONTENT_W - cardPadding * 2;
-    imageHeight = imgDisplayW / aspectRatio;
+    imgDisplayW = CONTENT_W - cardPadding * 2;
+    imgDisplayH = imgDisplayW / aspectRatio;
     // Limit max height to avoid huge images
-    const maxImgHeight = 80; // mm
-    if (imageHeight > maxImgHeight) {
-      imageHeight = maxImgHeight;
+    const maxImgHeight = 60; // mm - reduced to prevent overflow
+    if (imgDisplayH > maxImgHeight) {
+      imgDisplayH = maxImgHeight;
+      // Recalculate width to maintain aspect ratio
+      imgDisplayW = imgDisplayH * aspectRatio;
     }
-    totalCardHeight += imageHeight + 4; // Add image height + gap
+    totalCardHeight += imgDisplayH + 4; // Add image height + gap
   }
 
   // Draw card background
@@ -174,23 +176,13 @@ function drawMessageCard(doc, msg, index, y, usnToName, imageDim) {
 
   // Add image if present
   let currentY = textStartY + bodyHeight + 4;
-  if (msg.imageUrl && imageDim) {
+  if (msg.imageUrl && imageDim && imageDim.height > 0) {
     try {
       // Extract base64 data from data URL
       const imgData = msg.imageUrl.split(',')[1] || msg.imageUrl;
       const imgFormat = msg.imageUrl.includes('image/png') ? 'PNG' : 'JPEG';
-      // Calculate display width preserving aspect ratio
-      const aspectRatio = imageDim.width / imageDim.height;
-      const imgDisplayW = CONTENT_W - cardPadding * 2;
-      const imgDisplayH = imgDisplayW / aspectRatio;
-      // Limit height
-      let finalH = imgDisplayH;
-      const maxImgHeight = 80;
-      if (finalH > maxImgHeight) {
-        finalH = maxImgHeight;
-      }
-      doc.addImage(imgData, imgFormat, MARGIN + cardPadding, currentY, imgDisplayW, finalH);
-      currentY += finalH;
+      doc.addImage(imgData, imgFormat, MARGIN + cardPadding, currentY, imgDisplayW, imgDisplayH);
+      currentY += imgDisplayH;
     } catch (e) {
       console.error('Failed to add image to PDF:', e);
     }

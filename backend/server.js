@@ -489,9 +489,16 @@ app.get('/api/admin/messages/all', requireAdmin, async (req, res) => {
 });
 
 // Admin: get only students who have messages
+// Query param: ?visible=true to only return students with non-anonymous messages
 app.get('/api/admin/students-with-messages', requireAdmin, async (req, res) => {
   try {
-    const messageRecipients = await Message.distinct('recipient');
+    let messageRecipients;
+    if (req.query.visible === 'true') {
+      // Only get recipients of non-anonymous messages
+      messageRecipients = await Message.distinct('recipient', { isAnonymous: false });
+    } else {
+      messageRecipients = await Message.distinct('recipient');
+    }
     const users = await User.find({ _id: { $in: messageRecipients } })
       .select('name usn _id photo')
       .lean();

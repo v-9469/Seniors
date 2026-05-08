@@ -72,11 +72,11 @@ export default function AdminDashboard({ phase, setPhase }) {
 
   const pickRandom = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/admin/students-with-messages`, { credentials: 'include' });
+      const res = await fetch(`${apiUrl}/api/admin/students-with-messages?visible=true`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch');
       const studentsWithMsg = await res.json();
       if (!Array.isArray(studentsWithMsg) || studentsWithMsg.length === 0) {
-        alert('No students have received messages yet.');
+        alert('No students have received visible messages yet.');
         return;
       }
       const rand = studentsWithMsg[Math.floor(Math.random() * studentsWithMsg.length)];
@@ -405,8 +405,12 @@ export default function AdminDashboard({ phase, setPhase }) {
                        </p>
 
                        {msg.imageUrl && (
-                         <div className="mt-3">
-                           <img src={msg.imageUrl} alt="Attached" className="max-w-full rounded-lg border border-outline-variant/30" style={{ maxHeight: '300px', objectFit: 'contain' }} />
+                         <div className="mt-3 flex justify-center">
+                           <img 
+                             src={msg.imageUrl} 
+                             alt="Attached" 
+                             className="max-h-[300px] w-auto rounded-lg border border-outline-variant/30 object-contain"
+                           />
                          </div>
                        )}
  
