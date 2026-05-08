@@ -53,7 +53,23 @@ export default function AttendanceDashboard({ onClose }) {
   useEffect(() => {
     fetch(`${apiUrl}/api/admin/attendance`, { credentials: 'include' })
       .then(r => r.json())
-      .then(data => setStudents(Array.isArray(data) ? data : []))
+      .then(data => {
+        const studentsData = Array.isArray(data) ? data : [];
+        setStudents(studentsData);
+        // Reconstruct recent arrivals from persisted data
+        const arrivals = studentsData
+          .filter(s => s.arrivedAt)
+          .sort((a, b) => new Date(b.arrivedAt) - new Date(a.arrivedAt))
+          .slice(0, 12)
+          .map(s => ({
+            userId: s._id,
+            name: s.name,
+            usn: s.usn,
+            photo: s.photo,
+            arrivedAt: s.arrivedAt
+          }));
+        setRecentArrivals(arrivals);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -68,7 +84,9 @@ export default function AttendanceDashboard({ onClose }) {
         const data = JSON.parse(e.data);
         if (data.type === 'arrival') {
           setStudents(prev => prev.map(s =>
-            s._id === data.userId.toString() ? { ...s, arrivedAt: data.arrivedAt } : s
+            s._id === data.userId.toString()
+              ? { ...s, arrivedAt: data.arrivedAt, photo: data.photo, name: data.name, usn: data.usn }
+              : s
           ));
           setRecentArrivals(prev => [data, ...prev].slice(0, 12));
           // Add to full-screen celebration queue
