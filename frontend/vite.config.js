@@ -8,5 +8,11 @@ export default defineConfig({
     port: 12001,
     host: true,
     allowedHosts: ['goldenhour.assetiq.dpdns.org'],
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_URL || 'http://backend:12000',
+        changeOrigin: true
+      }
+    }
   }
 })
