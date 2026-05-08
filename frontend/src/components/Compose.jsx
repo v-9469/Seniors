@@ -49,6 +49,9 @@ export default function Compose({ onClose }) {
   const [toast, setToast] = useState(null);
   const [anonCount, setAnonCount] = useState(0);
   const [recipientSent, setRecipientSent] = useState(false);
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
   const comboRef = useRef(null);
 
   const apiUrl = '';
@@ -104,6 +107,23 @@ export default function Compose({ onClose }) {
       .catch(() => {});
   }, [recipient]);
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImage(event.target.result);
+      setImagePreview(event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSeal = async () => {
     if (!recipient) {
       setToast({ type: 'error', message: 'Please choose someone to send to.' });
@@ -119,7 +139,7 @@ export default function Compose({ onClose }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ recipientId: recipient, content: message.trim(), stamp, isAnonymous })
+        body: JSON.stringify({ recipientId: recipient, content: message.trim(), stamp, isAnonymous, imageUrl: image })
       });
       if (response.ok) {
         setSent(true);
@@ -128,6 +148,9 @@ export default function Compose({ onClose }) {
           setMessage('');
           setRecipient('');
           setSearchTerm('');
+          setImage(null);
+          setImagePreview(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
           setSent(false);
         }, 2000);
       } else {
@@ -380,9 +403,36 @@ export default function Compose({ onClose }) {
               onChange={e => setMessage(e.target.value)}
               disabled={isSending}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
               <span className="font-body-sm text-on-surface-variant text-xs">{message.length} chars</span>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">add_photo_alternate</span>
+                Add Image
+              </button>
             </div>
+            {imagePreview && (
+              <div className="mt-3 relative inline-block">
+                <img src={imagePreview} alt="Preview" className="max-h-48 rounded-lg border border-outline-variant/30" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-error text-white rounded-full flex items-center justify-center text-sm hover:bg-error/80 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
           </div>
 
           {/* ── Memory Stamps (Postage Stamps) ── */}

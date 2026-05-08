@@ -13,33 +13,48 @@ const STAMP_LABELS = {
   heart: 'Love',
 };
 
+const PAGE_W = 210; // A4 width in mm
+const PAGE_H = 297; // A4 height in mm
+const MARGIN = 22;
+const CONTENT_W = PAGE_W - MARGIN * 2;
+
 /**
  * Draw warm ivory background on the current page
  */
-function drawPageBg(doc, pw, ph) {
+function drawPageBg(doc) {
   doc.setFillColor(253, 251, 247); // #FDFBF7
-  doc.rect(0, 0, pw, ph, 'F');
+  doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 }
 
 /**
  * Draw a subtle decorative border on each page
  */
-function drawPageBorder(doc, pw, ph) {
+function drawPageBorder(doc) {
   const m = 12;
   doc.setDrawColor(201, 187, 176); // outline-variant #C9BBB0
   doc.setLineWidth(0.3);
-  doc.rect(m, m, pw - m * 2, ph - m * 2);
+  doc.rect(m, m, PAGE_W - m * 2, PAGE_H - m * 2);
   // Inner line (double border effect)
   doc.setDrawColor(222, 213, 204);
   doc.setLineWidth(0.15);
-  doc.rect(m + 2, m + 2, pw - (m + 2) * 2, ph - (m + 2) * 2);
+  doc.rect(m + 2, m + 2, PAGE_W - (m + 2) * 2, PAGE_H - (m + 2) * 2);
+}
+
+/**
+ * Add a new page with background and border
+ */
+function addNewPage(doc) {
+  doc.addPage();
+  drawPageBg(doc);
+  drawPageBorder(doc);
+  return MARGIN; // Return starting Y position
 }
 
 /**
  * Create a beautiful nostalgic cover section
  */
-function drawCoverSection(doc, student, messageCount, pw) {
-  const cx = pw / 2;
+function drawCoverSection(doc, student, messageCount, pageW) {
+  const cx = pageW / 2;
 
   // Top ornament line
   const ornY = 60;
@@ -92,27 +107,34 @@ function drawCoverSection(doc, student, messageCount, pw) {
 /**
  * Draw a "polaroid" message card with optional sender attribution
  */
-function drawMessageCard(doc, msg, index, y, margin, contentW, pw, usnToName) {
+function drawMessageCard(doc, msg, index, y, usnToName) {
   const cardPadding = 8;
-  const cardX = margin - 2;
-  const cardW = contentW + 4;
+  const cardX = MARGIN - 2;
+  const cardW = CONTENT_W + 4;
 
   // Message number badge
   doc.setFont('times', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(212, 168, 67); // gold
-  doc.text(`Memory #${index + 1}`, margin, y);
+  doc.text(`Memory #${index + 1}`, MARGIN, y);
   y += 5;
 
   // Message body
   doc.setFont('times', 'normal');
   doc.setFontSize(12);
   doc.setTextColor(44, 42, 40); // faded ink
-  const lines = doc.splitTextToSize(msg.content, contentW - cardPadding * 2);
+  const lines = doc.splitTextToSize(msg.content, CONTENT_W - cardPadding * 2);
 
   const lineHeight = 6;
   const bodyHeight = lines.length * lineHeight;
-  const totalCardHeight = bodyHeight + cardPadding * 2 + 14; // extra for attribution
+  let totalCardHeight = bodyHeight + cardPadding * 2 + 14; // extra for attribution
+
+  // Add image height if present
+  let imageHeight = 0;
+  if (msg.imageUrl) {
+    imageHeight = 40; // Fixed height for images in PDF
+    totalCardHeight += imageHeight + 4; // Add image height + gap
+  }
 
   // Draw card background
   doc.setFillColor(255, 253, 249); // slightly warmer than page
@@ -123,11 +145,27 @@ function drawMessageCard(doc, msg, index, y, margin, contentW, pw, usnToName) {
   // Write text lines
   const textStartY = y + cardPadding;
   lines.forEach((line, li) => {
-    doc.text(line, margin + cardPadding, textStartY + li * lineHeight);
+    doc.text(line, MARGIN + cardPadding, textStartY + li * lineHeight);
   });
 
+  // Add image if present
+  let currentY = textStartY + bodyHeight + 4;
+  if (msg.imageUrl) {
+    try {
+      // Extract base64 data from data URL
+      const imgData = msg.imageUrl.split(',')[1] || msg.imageUrl;
+      const imgFormat = msg.imageUrl.includes('image/png') ? 'PNG' : 'JPEG';
+      // Calculate image width to fit content, maintain aspect ratio
+      const imgDisplayW = CONTENT_W - cardPadding * 2;
+      doc.addImage(imgData, imgFormat, MARGIN + cardPadding, currentY, imgDisplayW, imageHeight);
+      currentY += imageHeight;
+    } catch (e) {
+      console.error('Failed to add image to PDF:', e);
+    }
+  }
+
   // Attribution line
-  const attrY = textStartY + bodyHeight + 6;
+  const attrY = currentY + 6;
   doc.setFont('times', 'italic');
   doc.setFontSize(9);
   doc.setTextColor(138, 126, 116); // outline
@@ -143,7 +181,7 @@ function drawMessageCard(doc, msg, index, y, margin, contentW, pw, usnToName) {
     attribution = '— Anonymous';
   }
 
-  doc.text(attribution, margin + cardPadding, attrY);
+  doc.text(attribution, MARGIN + cardPadding, attrY);
 
   // Stamp icon name (right-aligned)
   if (msg.stamp) {
@@ -151,7 +189,7 @@ function drawMessageCard(doc, msg, index, y, margin, contentW, pw, usnToName) {
     doc.setFont('times', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(212, 168, 67);
-    doc.text(stampLabel, pw - margin - cardPadding, attrY, { align: 'right' });
+    doc.text(stampLabel, PAGE_W - MARGIN - cardPadding, attrY, { align: 'right' });
   }
 
   return y - 2 + totalCardHeight + 8; // return new Y position with gap
@@ -160,8 +198,8 @@ function drawMessageCard(doc, msg, index, y, margin, contentW, pw, usnToName) {
 /**
  * Draw closing section
  */
-function drawClosingSection(doc, pw, y) {
-  const cx = pw / 2;
+function drawClosingSection(doc, y) {
+  const cx = PAGE_W / 2;
   const closingY = y + 30;
 
   doc.setFont('times', 'italic');
@@ -184,7 +222,17 @@ function drawClosingSection(doc, pw, y) {
 }
 
 /**
- * Beautiful nostalgic PDF — continuous one-page design.
+ * Check if we need a new page, and add one if necessary
+ */
+function checkPageBreak(doc, y, threshold = 40) {
+  if (y + threshold > PAGE_H - MARGIN) {
+    return addNewPage(doc);
+  }
+  return y;
+}
+
+/**
+ * Beautiful nostalgic PDF — multi-page design with image support.
  * Filename: USN.pdf
  */
 export function exportMessagesPDF(student, messages, allStudents = []) {
@@ -194,40 +242,23 @@ export function exportMessagesPDF(student, messages, allStudents = []) {
     usnToName[s.usn] = s.name || s.usn;
   });
 
-  const tempDoc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const pageW = tempDoc.internal.pageSize.getWidth();
-  const margin = 22;
-  const contentW = pageW - margin * 2;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-  // Calculate total height needed
-  let estimatedHeight = 220; // Cover section height roughly
-  
-  if (messages.length > 0) {
-    estimatedHeight += 30; // Header for messages
-    messages.forEach(msg => {
-      const testLines = tempDoc.splitTextToSize(msg.content, contentW - 16); // card padding
-      estimatedHeight += testLines.length * 6 + 30;
-    });
-  }
-  estimatedHeight += 100; // Closing section height roughly
-
-  // Create actual document with custom height to fit everything on one page
-  const doc = new jsPDF({ unit: 'mm', format: [pageW, Math.max(297, estimatedHeight)] });
-  const pageH = doc.internal.pageSize.getHeight();
-
-  // Background and Border
-  drawPageBg(doc, pageW, pageH);
-  drawPageBorder(doc, pageW, pageH);
+  // First page setup
+  drawPageBg(doc, PAGE_W, PAGE_H);
+  drawPageBorder(doc);
 
   // Cover
-  let y = drawCoverSection(doc, student, messages.length, pageW);
+  let y = drawCoverSection(doc, student, messages.length, PAGE_W);
+
+  y = checkPageBreak(doc, y);
 
   if (messages.length === 0) {
     doc.setFont('times', 'italic');
     doc.setFontSize(14);
     doc.setTextColor(160, 150, 140);
-    doc.text('No messages received yet.', pageW / 2, y + 20, { align: 'center' });
-    doc.text('But the best memories are yet to come.', pageW / 2, y + 28, { align: 'center' });
+    doc.text('No messages received yet.', PAGE_W / 2, y + 20, { align: 'center' });
+    doc.text('But the best memories are yet to come.', PAGE_W / 2, y + 28, { align: 'center' });
     doc.save(`${student.usn}.pdf`);
     return;
   }
@@ -236,27 +267,29 @@ export function exportMessagesPDF(student, messages, allStudents = []) {
   doc.setFont('times', 'bolditalic');
   doc.setFontSize(16);
   doc.setTextColor(179, 90, 40); // primary
-  doc.text('Your Messages', margin, y);
+  doc.text('Your Messages', MARGIN, y);
 
   doc.setFont('times', 'italic');
   doc.setFontSize(9);
   doc.setTextColor(138, 126, 116);
-  doc.text(`for ${student.name || student.usn}`, margin, y + 6);
+  doc.text(`for ${student.name || student.usn}`, MARGIN, y + 6);
 
   // Gold underline
   doc.setDrawColor(212, 168, 67);
   doc.setLineWidth(0.4);
-  doc.line(margin, y + 9, margin + 50, y + 9);
+  doc.line(MARGIN, y + 9, MARGIN + 50, y + 9);
 
   y += 18;
 
   // Messages
   messages.forEach((msg, idx) => {
-    y = drawMessageCard(doc, msg, idx, y, margin, contentW, pageW, usnToName);
+    y = checkPageBreak(doc, y, 60);
+    y = drawMessageCard(doc, msg, idx, y, usnToName);
   });
 
   // Closing
-  drawClosingSection(doc, pageW, y);
+  y = checkPageBreak(doc, y, 50);
+  drawClosingSection(doc, y);
 
   doc.save(`${student.usn}.pdf`);
 }

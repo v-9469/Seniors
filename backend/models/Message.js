@@ -24,6 +24,10 @@ const messageSchema = new mongoose.Schema({
   isAnonymous: {
     type: Boolean,
     default: false
+  },
+  imageUrl: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 

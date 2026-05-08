@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // ── Security & Performance Middleware ──────────────────────────────────────
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '10mb' }));           // Reject huge bodies
+app.use(express.json({ limit: '50mb' }));           // Increased limit for image uploads
 app.use(cookieParser());
 
 // (Rate limits removed to avoid needing npm install on user machine)
@@ -266,7 +266,7 @@ app.get('/api/words', async (req, res) => {
 
 // ── Send Message ───────────────────────────────────────────────────────────
 app.post('/api/messages', authenticate, async (req, res) => {
-  const { recipientId, content, stamp, isAnonymous } = req.body;
+  const { recipientId, content, stamp, isAnonymous, imageUrl } = req.body;
   if (!recipientId || !content) {
     return res.status(400).json({ error: 'Recipient and content are required' });
   }
@@ -302,7 +302,8 @@ app.post('/api/messages', authenticate, async (req, res) => {
       content,
       stamp: stamp || 'favorite',
       senderUsn: req.user.usn,
-      isAnonymous: !!isAnonymous
+      isAnonymous: !!isAnonymous,
+      imageUrl: imageUrl || null
     });
     await newMessage.save();
 
