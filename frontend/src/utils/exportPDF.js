@@ -13,6 +13,22 @@ const STAMP_LABELS = {
   heart: 'Love',
 };
 
+/**
+ * Get image dimensions from a data URL
+ */
+function getImageDimensions(imageUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      resolve({ width: 200, height: 150 }); // fallback
+    };
+    img.src = imageUrl;
+  });
+}
+
 const PAGE_W = 210; // A4 width in mm
 const PAGE_H = 297; // A4 height in mm
 const MARGIN = 22;
@@ -107,7 +123,7 @@ function drawCoverSection(doc, student, messageCount, pageW) {
 /**
  * Draw a "polaroid" message card with optional sender attribution
  */
-function drawMessageCard(doc, msg, index, y, usnToName) {
+function drawMessageCard(doc, msg, index, y, usnToName, imageDim) {
   const cardPadding = 8;
   const cardX = MARGIN - 2;
   const cardW = CONTENT_W + 4;
@@ -129,10 +145,18 @@ function drawMessageCard(doc, msg, index, y, usnToName) {
   const bodyHeight = lines.length * lineHeight;
   let totalCardHeight = bodyHeight + cardPadding * 2 + 14; // extra for attribution
 
-  // Add image height if present
+  // Add image height if present and imageDim available
   let imageHeight = 0;
-  if (msg.imageUrl) {
-    imageHeight = 40; // Fixed height for images in PDF
+  if (msg.imageUrl && imageDim) {
+    // Calculate display dimensions preserving aspect ratio
+    const aspectRatio = imageDim.width / imageDim.height;
+    const imgDisplayW = CONTENT_W - cardPadding * 2;
+    imageHeight = imgDisplayW / aspectRatio;
+    // Limit max height to avoid huge images
+    const maxImgHeight = 80; // mm
+    if (imageHeight > maxImgHeight) {
+      imageHeight = maxImgHeight;
+    }
     totalCardHeight += imageHeight + 4; // Add image height + gap
   }
 
@@ -150,15 +174,23 @@ function drawMessageCard(doc, msg, index, y, usnToName) {
 
   // Add image if present
   let currentY = textStartY + bodyHeight + 4;
-  if (msg.imageUrl) {
+  if (msg.imageUrl && imageDim) {
     try {
       // Extract base64 data from data URL
       const imgData = msg.imageUrl.split(',')[1] || msg.imageUrl;
       const imgFormat = msg.imageUrl.includes('image/png') ? 'PNG' : 'JPEG';
-      // Calculate image width to fit content, maintain aspect ratio
+      // Calculate display width preserving aspect ratio
+      const aspectRatio = imageDim.width / imageDim.height;
       const imgDisplayW = CONTENT_W - cardPadding * 2;
-      doc.addImage(imgData, imgFormat, MARGIN + cardPadding, currentY, imgDisplayW, imageHeight);
-      currentY += imageHeight;
+      const imgDisplayH = imgDisplayW / aspectRatio;
+      // Limit height
+      let finalH = imgDisplayH;
+      const maxImgHeight = 80;
+      if (finalH > maxImgHeight) {
+        finalH = maxImgHeight;
+      }
+      doc.addImage(imgData, imgFormat, MARGIN + cardPadding, currentY, imgDisplayW, finalH);
+      currentY += finalH;
     } catch (e) {
       console.error('Failed to add image to PDF:', e);
     }
@@ -235,17 +267,29 @@ function checkPageBreak(doc, y, threshold = 40) {
  * Beautiful nostalgic PDF — multi-page design with image support.
  * Filename: USN.pdf
  */
-export function exportMessagesPDF(student, messages, allStudents = []) {
+export async function exportMessagesPDF(student, messages, allStudents = []) {
   // Build lookup map for sender names
   const usnToName = {};
   allStudents.forEach(s => {
     usnToName[s.usn] = s.name || s.usn;
   });
 
+  // Preload image dimensions
+  const imageDims = [];
+  const promises = messages.map(async (msg, idx) => {
+    if (msg.imageUrl) {
+      const dim = await getImageDimensions(msg.imageUrl);
+      imageDims[idx] = dim;
+    } else {
+      imageDims[idx] = null;
+    }
+  });
+  await Promise.all(promises);
+
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
   // First page setup
-  drawPageBg(doc, PAGE_W, PAGE_H);
+  drawPageBg(doc);
   drawPageBorder(doc);
 
   // Cover
@@ -284,7 +328,7 @@ export function exportMessagesPDF(student, messages, allStudents = []) {
   // Messages
   messages.forEach((msg, idx) => {
     y = checkPageBreak(doc, y, 60);
-    y = drawMessageCard(doc, msg, idx, y, usnToName);
+    y = drawMessageCard(doc, msg, idx, y, usnToName, imageDims[idx]);
   });
 
   // Closing
@@ -308,7 +352,7 @@ export async function exportAllMessagesPDF(students, allMessages, onProgress) {
   const targets = students.filter(s => byRecipient[s._id]?.length > 0);
 
   for (let i = 0; i < targets.length; i++) {
-    exportMessagesPDF(targets[i], byRecipient[targets[i]._id] || [], students);
+    await exportMessagesPDF(targets[i], byRecipient[targets[i]._id] || [], students);
     onProgress?.(i + 1, targets.length);
     await new Promise(r => setTimeout(r, 350));
   }

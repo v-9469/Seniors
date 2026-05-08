@@ -98,12 +98,12 @@ export default function AdminDashboard({ phase, setPhase }) {
   };
 
   const handleExportPDF = () => {
-    if (!selectedStudent || messages.length === 0) return;
+    if (!selectedStudent || visibleMessages.length === 0) return;
     setIsExporting(true);
     // Small timeout so the button state renders before jsPDF blocks the thread
     setTimeout(() => {
       try {
-        exportMessagesPDF(selectedStudent, messages, students);
+        exportMessagesPDF(selectedStudent, visibleMessages, students);
       } finally {
         setIsExporting(false);
       }
@@ -400,11 +400,17 @@ export default function AdminDashboard({ phase, setPhase }) {
                         {STAMPS[msg.stamp] || '📝'}
                       </span>
 
-                      <p className="font-body-lg text-on-background whitespace-pre-wrap pr-10 leading-relaxed">
-                        {msg.content}
-                      </p>
+                       <p className="font-body-lg text-on-background whitespace-pre-wrap pr-10 leading-relaxed">
+                         {msg.content}
+                       </p>
 
-                      <div className="mt-4 pt-3 border-t border-outline-variant/20 flex justify-between items-center flex-wrap gap-2">
+                       {msg.imageUrl && (
+                         <div className="mt-3">
+                           <img src={msg.imageUrl} alt="Attached" className="max-w-full rounded-lg border border-outline-variant/30" style={{ maxHeight: '300px', objectFit: 'contain' }} />
+                         </div>
+                       )}
+ 
+                       <div className="mt-4 pt-3 border-t border-outline-variant/20 flex justify-between items-center flex-wrap gap-2">
                         <span className="font-label-md text-xs uppercase tracking-widest px-2 py-1 rounded border text-error bg-error/5 border-error/20">
                           From: {usnToName[msg.senderUsn] ? `${usnToName[msg.senderUsn]} (${msg.senderUsn})` : msg.senderUsn}
                         </span>
