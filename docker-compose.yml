@@ -17,7 +17,7 @@ services:
       - ./backend:/app
       - /app/node_modules
     environment:
-      - MONGODB_URI=mongodb://mongodb:27018/seniors
+      - MONGODB_URI=mongodb://mongodb:27017/seniors
       - JWT_SECRET=supersecretjwtkey_for_seniors
       - PORT=12000
       - ADMIN_PASSWORD=admin123
@@ -27,8 +27,6 @@ services:
   mongodb:
     image: mongo:4.4
     restart: unless-stopped
-    ports:
-      - "27018:27018"
     volumes:
       - mongo_data:/data/db
 
