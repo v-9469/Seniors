@@ -275,10 +275,7 @@ app.post('/api/messages', authenticate, async (req, res) => {
   }
 
   try {
-    const cached = await getSettingsCached();
-    if (cached.phase !== 'messaging') {
-      return res.status(403).json({ error: 'Messaging is not open yet.' });
-    }
+    // Messaging is now open at all phases, no phase check needed.
 
     const newMessage = new Message({
       recipient: recipientId,

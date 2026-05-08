@@ -7,6 +7,7 @@ import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import WordCloudPhase from './components/WordCloudPhase';
 import VisibleDashboard from './components/VisibleDashboard';
+import JammingPhase from './components/JammingPhase';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,6 +15,7 @@ function App() {
   const [profile, setProfile] = useState(null);
   const [phase, setPhase] = useState('welcome');
   const [checking, setChecking] = useState(true);
+  const [showCompose, setShowCompose] = useState(false);
 
   const apiUrl = '';
 
@@ -78,17 +80,31 @@ function App() {
   let StudentView = <Welcome name={profile?.name} />;
   if (phase === 'wordcloud') {
     StudentView = <WordCloudPhase name={profile?.name} />;
-  } else if (phase === 'messaging') {
-    StudentView = <Compose />;
   } else if (phase === 'jamming') {
-    StudentView = (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <span className="material-symbols-outlined text-6xl text-purple-400 mb-4 animate-bounce">music_note</span>
-        <h2 className="text-3xl font-bold text-on-surface mb-2">Jamming Session!</h2>
-        <p className="text-on-surface-variant text-lg">Look at the main screen to sing along to the lyrics!</p>
-      </div>
-    );
+    StudentView = <JammingPhase />;
   }
+
+  const StudentApp = () => (
+    <>
+      <div style={{ display: showCompose ? 'none' : 'block' }} className="relative min-h-screen">
+        {StudentView}
+        {/* Floating Action Button */}
+        <button
+          onClick={() => setShowCompose(true)}
+          className="fixed bottom-6 right-6 z-50 bg-secondary text-on-secondary shadow-xl rounded-full px-5 py-4 flex items-center gap-2 hover:bg-secondary/90 transition-all hover:scale-105 active:scale-95"
+        >
+          <span className="material-symbols-outlined text-2xl">edit_square</span>
+          <span className="font-medium text-sm tracking-wide">Write Message</span>
+        </button>
+      </div>
+      
+      {showCompose && (
+        <div className="fixed inset-0 z-[100] bg-background overflow-y-auto">
+          <Compose onClose={() => setShowCompose(false)} />
+        </div>
+      )}
+    </>
+  );
 
   return (
     <Router>
@@ -104,7 +120,7 @@ function App() {
         <Route
           path="/compose"
           element={
-            isAuthenticated && !isAdmin ? StudentView :
+            isAuthenticated && !isAdmin ? <StudentApp /> :
             isAdmin ? <Navigate to="/admin" /> :
             <Navigate to="/login" />
           }

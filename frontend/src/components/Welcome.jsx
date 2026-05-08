@@ -66,8 +66,8 @@ export default function Welcome({ name }) {
         </h2>
 
         <p className="font-body-md text-on-surface-variant mb-10 leading-relaxed">
-          The farewell message board is not open yet.<br />
-          <span className="font-medium text-primary">Sit tight — it starts very soon!</span>
+          You can write messages to your friends anytime!<br />
+          <span className="font-medium text-primary">Click the button below to get started.</span>
         </p>
 
         {/* Quote card */}

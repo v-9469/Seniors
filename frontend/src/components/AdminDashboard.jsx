@@ -192,8 +192,7 @@ export default function AdminDashboard({ phase, setPhase }) {
               >
                 <option value="welcome">Phase 1: Welcome</option>
                 <option value="wordcloud">Phase 2: Word Cloud</option>
-                <option value="messaging">Phase 3: Messaging</option>
-                <option value="jamming">Phase 4: Jamming</option>
+                <option value="jamming">Phase 3: Jamming</option>
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-base pointer-events-none opacity-70">
                 arrow_drop_down

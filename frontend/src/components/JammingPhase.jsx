@@ -16,7 +16,7 @@ export default function JammingPhase() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-[#0a0a0a] flex flex-col items-center p-12 overflow-y-auto relative"
+      className="min-h-screen bg-[#0a0a0a] flex flex-col items-center p-6 md:p-12 overflow-y-auto relative"
     >
       {/* Dynamic Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

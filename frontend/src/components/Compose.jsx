@@ -35,7 +35,7 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-export default function Compose() {
+export default function Compose({ onClose }) {
   const [recipient, setRecipient] = useState('');
   const [message, setMessage] = useState('');
   const [stamp, setStamp] = useState('favorite');
@@ -154,7 +154,13 @@ export default function Compose() {
       <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant/20 shadow-sm">
         <div className="flex items-center justify-between px-4 md:px-8 py-3 max-w-3xl mx-auto">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">auto_stories</span>
+            {onClose ? (
+              <button onClick={onClose} className="p-1.5 -ml-1.5 flex items-center hover:bg-surface-variant rounded-full text-on-surface-variant transition-colors" title="Back">
+                <span className="material-symbols-outlined text-2xl">arrow_back</span>
+              </button>
+            ) : (
+              <span className="material-symbols-outlined text-primary text-2xl">auto_stories</span>
+            )}
             <span className="font-headline-md text-primary font-semibold hidden sm:block">Golden Hour</span>
           </div>
 
