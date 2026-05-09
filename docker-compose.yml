@@ -2,7 +2,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "12001:12001"
+      - "12001:80"
     environment:
       - VITE_API_URL=http://backend:12000
     depends_on:
@@ -13,9 +13,6 @@ services:
     restart: unless-stopped
     ports:
       - "12000:12000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/seniors
       - JWT_SECRET=supersecretjwtkey_for_seniors

@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 // ── Security & Performance Middleware ──────────────────────────────────────
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '10mb' }));           // Reject huge bodies
+app.use(express.json({ limit: '50mb' }));           // Increased limit for image uploads
 app.use(cookieParser());
 
 // (Rate limits removed to avoid needing npm install on user machine)
@@ -266,7 +266,7 @@ app.get('/api/words', async (req, res) => {
 
 // ── Send Message ───────────────────────────────────────────────────────────
 app.post('/api/messages', authenticate, async (req, res) => {
-  const { recipientId, content, stamp, isAnonymous } = req.body;
+  const { recipientId, content, stamp, isAnonymous, imageUrl } = req.body;
   if (!recipientId || !content) {
     return res.status(400).json({ error: 'Recipient and content are required' });
   }
@@ -275,9 +275,26 @@ app.post('/api/messages', authenticate, async (req, res) => {
   }
 
   try {
-    const cached = await getSettingsCached();
-    if (cached.phase !== 'messaging') {
-      return res.status(403).json({ error: 'Messaging is not open yet.' });
+    // Messaging is now open at all phases, no phase check needed.
+
+    // Check if sender already sent a message to this recipient
+    const existingMessage = await Message.findOne({
+      senderUsn: req.user.usn,
+      recipient: recipientId
+    });
+    if (existingMessage) {
+      return res.status(400).json({ error: 'You can only send one message per person' });
+    }
+
+    // Check anonymous message limit (max 3 per person)
+    if (isAnonymous) {
+      const anonymousCount = await Message.countDocuments({
+        senderUsn: req.user.usn,
+        isAnonymous: true
+      });
+      if (anonymousCount >= 3) {
+        return res.status(400).json({ error: 'You can only send up to 3 anonymous messages' });
+      }
     }
 
     const newMessage = new Message({
@@ -285,7 +302,8 @@ app.post('/api/messages', authenticate, async (req, res) => {
       content,
       stamp: stamp || 'favorite',
       senderUsn: req.user.usn,
-      isAnonymous: !!isAnonymous
+      isAnonymous: !!isAnonymous,
+      imageUrl: imageUrl || null
     });
     await newMessage.save();
 
@@ -301,6 +319,30 @@ app.post('/api/messages', authenticate, async (req, res) => {
     res.status(201).json({ message: 'Message sent successfully' });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Get Anonymous Message Count ────────────────────────────────────────
+app.get('/api/messages/anon-count', authenticate, async (req, res) => {
+  try {
+    const count = await Message.countDocuments({ senderUsn: req.user.usn, isAnonymous: true });
+    res.json({ count });
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Check if Message Sent to Recipient ─────────────────────────────────
+app.get('/api/messages/check-sent', authenticate, async (req, res) => {
+  try {
+    const { recipientId } = req.query;
+    if (!recipientId) {
+      return res.status(400).json({ error: 'recipientId query parameter is required' });
+    }
+    const exists = await Message.exists({ senderUsn: req.user.usn, recipient: recipientId });
+    res.json({ sent: !!exists });
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -441,6 +483,26 @@ app.get('/api/admin/messages/all', requireAdmin, async (req, res) => {
       .sort({ recipient: 1, createdAt: -1 })
       .lean();
     res.json(messages);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Admin: get only students who have messages
+// Query param: ?visible=true to only return students with non-anonymous messages
+app.get('/api/admin/students-with-messages', requireAdmin, async (req, res) => {
+  try {
+    let messageRecipients;
+    if (req.query.visible === 'true') {
+      // Only get recipients of non-anonymous messages
+      messageRecipients = await Message.distinct('recipient', { isAnonymous: false });
+    } else {
+      messageRecipients = await Message.distinct('recipient');
+    }
+    const users = await User.find({ _id: { $in: messageRecipients } })
+      .select('name usn _id photo')
+      .lean();
+    res.json(users);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }

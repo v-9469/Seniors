@@ -91,36 +91,6 @@ export default function VisibleDashboard({ phase, onClose }) {
     );
   } else if (phase === 'jamming') {
     content = <JammingPhase />;
-  } else {
-    // phase === 'messaging'
-    content = (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center overflow-hidden relative"
-      >
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
-
-        <motion.div
-          initial={{ scale: 0.9, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        >
-          <span className="material-symbols-outlined text-primary mb-6" style={{ fontSize: '80px' }}>
-            mark_email_unread
-          </span>
-          <h1 className="font-headline-lg text-5xl md:text-7xl font-bold text-on-surface mb-6 tracking-tight">
-            Farewell Messaging is Open!
-          </h1>
-          <p className="font-body-lg text-xl text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
-            Check your phones. You can now write anonymous messages to your friends. <br />
-            Make them memorable.
-          </p>
-        </motion.div>
-      </motion.div>
-    );
   }
 
   return (

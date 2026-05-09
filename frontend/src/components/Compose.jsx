@@ -35,7 +35,7 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-export default function Compose() {
+export default function Compose({ onClose }) {
   const [recipient, setRecipient] = useState('');
   const [message, setMessage] = useState('');
   const [stamp, setStamp] = useState('favorite');
@@ -47,6 +47,11 @@ export default function Compose() {
   const [searchTerm, setSearchTerm] = useState('');
   const [comboOpen, setComboOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [anonCount, setAnonCount] = useState(0);
+  const [recipientSent, setRecipientSent] = useState(false);
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
   const comboRef = useRef(null);
 
   const apiUrl = '';
@@ -82,6 +87,43 @@ export default function Compose() {
       });
   }, []);
 
+  // Fetch anonymous message count
+  useEffect(() => {
+    fetch(`${apiUrl}/api/messages/anon-count`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : { count: 0 })
+      .then(data => setAnonCount(data.count))
+      .catch(() => {});
+  }, []);
+
+  // Check if message sent to selected recipient
+  useEffect(() => {
+    if (!recipient) {
+      setRecipientSent(false);
+      return;
+    }
+    fetch(`${apiUrl}/api/messages/check-sent?recipientId=${recipient}`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : { sent: false })
+      .then(data => setRecipientSent(data.sent))
+      .catch(() => {});
+  }, [recipient]);
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImage(event.target.result);
+      setImagePreview(event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSeal = async () => {
     if (!recipient) {
       setToast({ type: 'error', message: 'Please choose someone to send to.' });
@@ -97,7 +139,7 @@ export default function Compose() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ recipientId: recipient, content: message.trim(), stamp, isAnonymous })
+        body: JSON.stringify({ recipientId: recipient, content: message.trim(), stamp, isAnonymous, imageUrl: image })
       });
       if (response.ok) {
         setSent(true);
@@ -106,6 +148,9 @@ export default function Compose() {
           setMessage('');
           setRecipient('');
           setSearchTerm('');
+          setImage(null);
+          setImagePreview(null);
+          if (fileInputRef.current) fileInputRef.current.value = '';
           setSent(false);
         }, 2000);
       } else {
@@ -154,7 +199,13 @@ export default function Compose() {
       <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-outline-variant/20 shadow-sm">
         <div className="flex items-center justify-between px-4 md:px-8 py-3 max-w-3xl mx-auto">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">auto_stories</span>
+            {onClose ? (
+              <button onClick={onClose} className="p-1.5 -ml-1.5 flex items-center hover:bg-surface-variant rounded-full text-on-surface-variant transition-colors" title="Back">
+                <span className="material-symbols-outlined text-2xl">arrow_back</span>
+              </button>
+            ) : (
+              <span className="material-symbols-outlined text-primary text-2xl">auto_stories</span>
+            )}
             <span className="font-headline-md text-primary font-semibold hidden sm:block">Golden Hour</span>
           </div>
 
@@ -188,9 +239,9 @@ export default function Compose() {
         {/* Greeting */}
         {profile && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
             className="mb-6"
           >
             <h2 className="font-headline-lg text-headline-lg text-on-surface">
@@ -202,41 +253,66 @@ export default function Compose() {
           </motion.div>
         )}
 
+        {/* Rules */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6 p-4 bg-surface-container-low rounded-xl border border-outline-variant/20"
+        >
+          <p className="font-label-md text-xs uppercase tracking-wider text-on-surface-variant mb-2">Sending Rules</p>
+          <ul className="space-y-1 text-sm text-on-surface-variant">
+            <li className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">info</span>
+              You can send up to 3 anonymous messages ({anonCount}/3 used)
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">info</span>
+              You can only send 1 message per person (including anonymous)
+            </li>
+          </ul>
+        </motion.div>
+
         {/* ── Letter Card ── */}
         <motion.div
-          initial={{ opacity: 0, y: 30, rotate: -0.5 }}
-          animate={{ opacity: 1, y: 0, rotate: 0.4 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 50, rotate: -2, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, rotate: 0.5, scale: 1 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
           className="paper-texture polaroid-shadow rounded-2xl p-6 md:p-8 relative"
         >
           {/* Corner accent */}
-          <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/5 rounded-bl-full rounded-tr-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-24 h-24 rounded-bl-full rounded-tr-2xl pointer-events-none"
+            style={{ background: 'radial-gradient(circle at 100% 0%, rgba(212,168,67,0.08), transparent 70%)' }}
+          />
 
           {/* ── Recipient Section ── */}
           <div className="mb-6 pb-5 border-b border-surface-variant">
-            <label className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest block mb-3">
+            <label className="editorial-label text-on-surface-variant block mb-3">
               To
             </label>
 
-            {/* Custom Combobox */}
+            {/* Custom Combobox — letter-style underline */}
             <div ref={comboRef} className="relative">
               <div
                 onClick={() => setComboOpen(v => !v)}
-                className={`flex items-center gap-2 cursor-pointer rounded-xl border transition-all duration-200 px-4 py-3 ${
+                className={`flex items-center gap-2 cursor-pointer border-b-2 transition-all duration-300 pb-2 ${
                   comboOpen
-                    ? 'border-primary ring-2 ring-primary/20 bg-surface-container-lowest'
-                    : 'border-outline-variant/40 bg-surface-container/50 hover:border-outline'
+                    ? 'border-primary'
+                    : 'border-outline-variant/40 hover:border-outline'
                 }`}
               >
                 {selectedSenior ? (
                   <>
-                    <div className="w-7 h-7 rounded-full bg-secondary/15 flex items-center justify-center text-secondary text-sm font-bold flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #D4A843, #B35A28)', color: '#fff' }}>
                       {selectedSenior.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <span className="font-body-md text-on-background font-medium">{selectedSenior.name}</span>
                       <span className="ml-2 font-body-sm text-xs text-on-surface-variant">{selectedSenior.usn}</span>
                     </div>
+                    {recipientSent && (
+                      <span className="font-label-md text-xs text-error">Already sent</span>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setRecipient(''); setSearchTerm(''); }}
@@ -248,7 +324,7 @@ export default function Compose() {
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-outline-variant text-lg">person_search</span>
-                    <span className="font-body-md text-on-surface-variant/60 flex-1">Select your friend…</span>
+                    <span className="font-body-md text-on-surface-variant/50 flex-1 italic">Select your friend…</span>
                     <span className="material-symbols-outlined text-outline-variant text-lg">{comboOpen ? 'expand_less' : 'expand_more'}</span>
                   </>
                 )}
@@ -261,9 +337,9 @@ export default function Compose() {
                     initial={{ opacity: 0, y: -6, scaleY: 0.95 }}
                     animate={{ opacity: 1, y: 0, scaleY: 1 }}
                     exit={{ opacity: 0, y: -6, scaleY: 0.95 }}
-                    transition={{ duration: 0.15 }}
+                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     style={{ transformOrigin: 'top' }}
-                    className="absolute z-50 mt-1 w-full bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/20 overflow-hidden"
+                    className="absolute z-50 mt-2 w-full bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/20 overflow-hidden"
                   >
                     {/* Search inside dropdown */}
                     <div className="p-2 border-b border-outline-variant/15">
@@ -281,7 +357,7 @@ export default function Compose() {
                     </div>
 
                     {/* Results */}
-                    <div className="max-h-52 overflow-y-auto hide-scrollbar">
+                    <div className="max-h-40 sm:max-h-52 overflow-y-auto hide-scrollbar">
                       {filteredSeniors.length === 0 ? (
                         <div className="py-6 text-center font-body-sm text-on-surface-variant text-sm">
                           No matches found.
@@ -316,28 +392,55 @@ export default function Compose() {
 
           {/* ── Message Area ── */}
           <div className="mb-6">
-            <label className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest block mb-3">
+            <label className="editorial-label text-on-surface-variant block mb-3">
               Your Message
             </label>
             <textarea
-              className="w-full bg-transparent border-none outline-none resize-none font-body-lg text-body-lg text-on-background lined-paper min-h-[200px] p-0 focus:ring-0"
+              className="w-full bg-transparent border-none outline-none resize-none font-body-lg text-body-lg text-on-background min-h-[50vh] sm:min-h-[200px] p-0 focus:ring-0 leading-[2.2em] placeholder:italic"
               placeholder="Pen down your memories… Let them live forever."
               rows={9}
               value={message}
               onChange={e => setMessage(e.target.value)}
               disabled={isSending}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
               <span className="font-body-sm text-on-surface-variant text-xs">{message.length} chars</span>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">add_photo_alternate</span>
+                Add Image
+              </button>
             </div>
+            {imagePreview && (
+              <div className="mt-3 relative inline-block">
+                <img src={imagePreview} alt="Preview" className="max-h-48 rounded-lg border border-outline-variant/30" />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-error text-white rounded-full flex items-center justify-center text-sm hover:bg-error/80 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
           </div>
 
-          {/* ── Memory Stamps ── */}
+          {/* ── Memory Stamps (Postage Stamps) ── */}
           <div className="mb-8">
-            <label className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest block mb-3">
+            <label className="editorial-label text-on-surface-variant block mb-3">
               Memory Stamp
             </label>
-            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+            <div className="flex gap-3 overflow-x-auto py-4 hide-scrollbar">
               {STAMPS.map((s, i) => (
                 <motion.button
                   key={s.icon}
@@ -345,17 +448,19 @@ export default function Compose() {
                   initial={{ opacity: 0, scale: 0.7 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.05 * i, type: 'spring', stiffness: 300 }}
-                  whileHover={{ y: -4, scale: 1.08 }}
+                  whileHover={{ y: -4, scale: 1.08, rotate: 2 }}
                   whileTap={{ scale: 0.92 }}
                   onClick={() => setStamp(s.icon)}
-                  className={`stamp-card ${stamp === s.icon ? 'selected' : 'unselected'}`}
+                  className={`postage-stamp ${stamp === s.icon ? 'selected' : 'unselected'}`}
+                  style={stamp === s.icon ? { transform: 'rotate(3deg)' } : {}}
                 >
                   <span
-                    className={`material-symbols-outlined text-2xl transition-colors ${stamp === s.icon ? 'text-secondary' : 'text-outline'}`}
+                    className={`material-symbols-outlined text-2xl transition-colors ${stamp === s.icon ? 'text-gold' : 'text-outline'}`}
+                    style={stamp === s.icon ? { color: '#D4A843' } : {}}
                   >
                     {s.icon}
                   </span>
-                  <span className={`font-label-md text-[9px] uppercase tracking-wider ${stamp === s.icon ? 'text-secondary' : 'text-outline-variant'}`}>
+                  <span className={`font-label-md text-[9px] uppercase tracking-wider ${stamp === s.icon ? 'text-on-surface' : 'text-outline-variant'}`}>
                     {s.label}
                   </span>
                 </motion.button>
@@ -365,20 +470,22 @@ export default function Compose() {
 
           {/* ── Anonymous Checkbox ── */}
           <div className="mb-6 flex items-center gap-3 bg-surface-container/30 p-3 rounded-xl border border-outline-variant/30">
-            <input 
-              type="checkbox" 
-              id="anonymous-check" 
+            <input
+              type="checkbox"
+              id="anonymous-check"
               checked={isAnonymous}
               onChange={(e) => setIsAnonymous(e.target.checked)}
-              className="w-5 h-5 accent-secondary rounded-sm cursor-pointer"
+              disabled={anonCount >= 3}
+              className="w-5 h-5 accent-secondary rounded-sm cursor-pointer disabled:opacity-50"
             />
-            <label htmlFor="anonymous-check" className="font-body-sm text-sm text-on-surface cursor-pointer select-none">
-              Send this anonymously
+            <label htmlFor="anonymous-check" className={`font-body-sm text-sm cursor-pointer select-none ${anonCount >= 3 ? 'text-on-surface-variant/50' : 'text-on-surface'}`}>
+              Send this anonymously ({3 - anonCount} remaining)
             </label>
           </div>
 
           {/* ── Seal Button ── */}
-          <div className="flex items-center justify-between">
+          {/* On desktop: inline with text. On mobile: floating FAB for thumb access */}
+          <div className="hidden sm:flex items-center justify-between">
             <p className="font-body-sm text-on-surface-variant/70 text-xs max-w-[60%]">
               {isAnonymous ? "Delivered anonymously. Only you know you sent it." : "Your name will be visible to the recipient."}
             </p>
@@ -387,33 +494,36 @@ export default function Compose() {
               type="button"
               onClick={handleSeal}
               disabled={isSending || sent}
-              whileHover={!isSending && !sent ? { scale: 1.05 } : {}}
-              whileTap={!isSending && !sent ? { scale: 0.92 } : {}}
+              whileHover={!isSending && !sent ? { scale: 1.08 } : {}}
+              whileTap={!isSending && !sent ? {
+                scale: 0.85,
+                rotate: -5,
+                transition: { duration: 0.15 }
+              } : {}}
               animate={sent ? { scale: [1, 1.15, 1] } : {}}
-              className={`relative flex flex-col items-center justify-center w-20 h-20 rounded-full shadow-lg transition-all duration-300 focus:outline-none ${
-                sent
-                  ? 'bg-green-500 text-white'
-                  : 'bg-secondary text-on-secondary hover:bg-secondary/90'
-              }`}
+              className={`wax-seal ${sent ? 'sent' : ''} focus:outline-none`}
             >
-              {/* Dashed ring */}
-              <div className="absolute inset-1 rounded-full border-2 border-white/25 border-dashed pointer-events-none" />
-              <span className="material-symbols-outlined text-2xl mb-0.5">
+              <span className="material-symbols-outlined text-2xl mb-0.5" style={{ color: sent ? '#fff' : '#FFD700' }}>
                 {sent ? 'check' : isSending ? 'progress_activity' : 'send'}
               </span>
-              <span className="font-label-md text-[9px] uppercase tracking-widest">
+              <span className="font-label-md text-[9px] uppercase tracking-widest" style={{ color: sent ? '#fff' : '#FFD700' }}>
                 {sent ? 'Sent!' : isSending ? '...' : 'Seal'}
               </span>
             </motion.button>
           </div>
+
+          {/* Mobile-only: anon hint text */}
+          <p className="sm:hidden font-body-sm text-on-surface-variant/70 text-xs text-center">
+            {isAnonymous ? "Delivered anonymously." : "Your name will be visible."}
+          </p>
         </motion.div>
 
         {/* Sticky note hint */}
         <motion.div
           initial={{ opacity: 0, rotate: 1 }}
           animate={{ opacity: 1, rotate: -1.5 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          className="mt-5 ml-auto w-56 bg-tertiary-fixed/50 p-3 rounded shadow-sm relative"
+          transition={{ delay: 0.8, duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-5 w-full sm:w-56 sm:ml-auto bg-tertiary-fixed/50 p-3 rounded shadow-sm relative"
         >
           <div className="absolute -top-2 left-8 w-10 h-3.5 bg-surface-variant/80 rounded-sm shadow-sm" />
           <div className="flex gap-2 items-start">
@@ -425,6 +535,28 @@ export default function Compose() {
         </motion.div>
 
       </main>
+
+      {/* Mobile floating wax-seal FAB — hidden on sm+ where inline seal is visible */}
+      <motion.button
+        type="button"
+        onClick={handleSeal}
+        disabled={isSending || sent}
+        whileTap={!isSending && !sent ? {
+          scale: 0.85,
+          rotate: -5,
+          transition: { duration: 0.15 }
+        } : {}}
+        animate={sent ? { scale: [1, 1.15, 1] } : {}}
+        className={`sm:hidden fixed bottom-6 right-6 z-50 wax-seal ${sent ? 'sent' : ''} focus:outline-none`}
+        style={{ width: '4.5rem', height: '4.5rem' }}
+      >
+        <span className="material-symbols-outlined text-2xl mb-0.5" style={{ color: sent ? '#fff' : '#FFD700' }}>
+          {sent ? 'check' : isSending ? 'progress_activity' : 'send'}
+        </span>
+        <span className="font-label-md text-[9px] uppercase tracking-widest" style={{ color: sent ? '#fff' : '#FFD700' }}>
+          {sent ? 'Sent!' : isSending ? '...' : 'Seal'}
+        </span>
+      </motion.button>
     </div>
   );
 }

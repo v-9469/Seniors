@@ -14,6 +14,37 @@ const QUOTES = [
   { text: "Every exit is an entry somewhere else.", author: "Tom Stoppard" },
 ];
 
+function DustMotes() {
+  const motes = Array.from({ length: 14 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    top: `${60 + Math.random() * 40}%`,
+    size: 2 + Math.random() * 3,
+    duration: 14 + Math.random() * 12,
+    delay: Math.random() * 10,
+    opacity: 0.12 + Math.random() * 0.18,
+  }));
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+      {motes.map(m => (
+        <div
+          key={m.id}
+          className="dust-mote"
+          style={{
+            left: m.left,
+            top: m.top,
+            width: `${m.size}px`,
+            height: `${m.size}px`,
+            '--duration': `${m.duration}s`,
+            '--delay': `${m.delay}s`,
+            opacity: m.opacity,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function Welcome({ name }) {
   const [quoteIndex, setQuoteIndex] = useState(() => Math.floor(Math.random() * QUOTES.length));
   const [visible, setVisible] = useState(true);
@@ -35,15 +66,31 @@ export default function Welcome({ name }) {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden">
 
-      {/* Ambient background blobs */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/6 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+      {/* Golden Hour atmospheric gradients */}
+      <div className="absolute inset-0 golden-hour-bg pointer-events-none" />
+
+      {/* Warm top-center glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(245,192,106,0.2) 0%, rgba(244,166,140,0.1) 35%, transparent 70%)',
+        }}
+      />
+
+      {/* Deep rose bottom accent */}
+      <div className="absolute bottom-0 right-0 w-[600px] h-[400px] pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse at 80% 100%, rgba(199,91,111,0.1) 0%, transparent 55%)',
+        }}
+      />
+
+      {/* Ambient dust */}
+      <DustMotes />
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md text-center"
+        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md text-center relative z-10"
       >
 
         {/* Animated icon */}
@@ -58,42 +105,70 @@ export default function Welcome({ name }) {
         </motion.div>
 
         {/* Greeting */}
-        <h1 className="font-headline-xl text-headline-xl text-on-surface mb-2">
+        <motion.h1
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="font-headline-xl text-headline-xl text-on-surface mb-2"
+        >
           Welcome,
-        </h1>
-        <h2 className="font-headline-lg text-headline-lg text-secondary italic mb-6">
+        </motion.h1>
+        <motion.h2
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="font-headline-lg text-headline-lg text-secondary italic mb-6"
+        >
           {name?.split(' ')[0] || 'Friend'} 🎓
-        </h2>
+        </motion.h2>
 
-        <p className="font-body-md text-on-surface-variant mb-10 leading-relaxed">
-          The farewell message board is not open yet.<br />
-          <span className="font-medium text-primary">Sit tight — it starts very soon!</span>
-        </p>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.8 }}
+          className="w-20 h-0.5 mx-auto mb-6 rounded-full"
+          style={{ background: 'linear-gradient(90deg, transparent, #D4A843, transparent)' }}
+        />
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="font-body-md text-on-surface-variant mb-10 leading-relaxed"
+        >
+          You can write messages to your friends anytime!<br />
+          <span className="font-medium text-primary">Click the button below to get started.</span>
+        </motion.p>
 
         {/* Quote card */}
-        <div className="paper-texture polaroid-shadow rounded-2xl p-8 relative mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 30, rotate: -1 }}
+          animate={{ opacity: 1, y: 0, rotate: 0.5 }}
+          transition={{ delay: 0.4, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="paper-texture polaroid-shadow rounded-2xl p-8 relative mb-8"
+        >
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-20 h-6 bg-surface-variant/70 rounded-sm shadow-sm rotate-1" />
 
           <AnimatePresence mode="wait">
             {visible && (
               <motion.div
                 key={quoteIndex}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.45 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               >
                 <span className="material-symbols-outlined text-secondary/30 text-5xl leading-none block mb-2">format_quote</span>
                 <p className="font-quote text-quote text-on-surface leading-relaxed mb-4">
                   {quote.text}
                 </p>
-                <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">
+                <p className="editorial-label text-on-surface-variant">
                   — {quote.author}
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         {/* Quote dots indicator */}
         <div className="flex items-center justify-center gap-1.5">
@@ -110,9 +185,14 @@ export default function Welcome({ name }) {
           ))}
         </div>
 
-        <p className="font-body-sm text-xs text-on-surface-variant/50 mt-8">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 0.8 }}
+          className="font-body-sm text-xs text-on-surface-variant/50 mt-8"
+        >
           This page will automatically open when the event begins.
-        </p>
+        </motion.p>
       </motion.div>
     </div>
   );

@@ -23,6 +23,13 @@ export default function AdminDashboard({ phase, setPhase }) {
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
+  const [studentsWithMessages, setStudentsWithMessages] = useState(new Set());
+
+  // Create USN to name mapping for displaying sender names
+  const usnToName = students.reduce((acc, s) => ({ ...acc, [s.usn]: s.name }), {});
+
+  // Filter out anonymous messages
+  const visibleMessages = messages.filter(msg => !msg.isAnonymous);
 
   const apiUrl = '';
 
@@ -33,6 +40,17 @@ export default function AdminDashboard({ phase, setPhase }) {
       .then(data => setStudents(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setLoadingStudents(false));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${apiUrl}/api/admin/students-with-messages`, { credentials: 'include' })
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStudentsWithMessages(new Set(data.map(s => s._id.toString())));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -52,11 +70,24 @@ export default function AdminDashboard({ phase, setPhase }) {
       .finally(() => setLoadingMessages(false));
   }, [selectedStudent]);
 
-  const pickRandom = () => {
-    if (students.length === 0) return;
-    const rand = students[Math.floor(Math.random() * students.length)];
-    setSelectedStudent(rand);
-    setSidebarOpen(false);
+  const pickRandom = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/api/admin/students-with-messages?visible=true`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      const studentsWithMsg = await res.json();
+      if (!Array.isArray(studentsWithMsg) || studentsWithMsg.length === 0) {
+        alert('No students have received visible messages yet.');
+        return;
+      }
+      const rand = studentsWithMsg[Math.floor(Math.random() * studentsWithMsg.length)];
+      setSelectedStudent(rand);
+      // Only close sidebar on mobile
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      }
+    } catch {
+      alert('Failed to fetch students. Please try again.');
+    }
   };
 
   const handleLogout = () => {
@@ -67,12 +98,12 @@ export default function AdminDashboard({ phase, setPhase }) {
   };
 
   const handleExportPDF = () => {
-    if (!selectedStudent || messages.length === 0) return;
+    if (!selectedStudent || visibleMessages.length === 0) return;
     setIsExporting(true);
     // Small timeout so the button state renders before jsPDF blocks the thread
     setTimeout(() => {
       try {
-        exportMessagesPDF(selectedStudent, messages);
+        exportMessagesPDF(selectedStudent, visibleMessages, students);
       } finally {
         setIsExporting(false);
       }
@@ -192,8 +223,7 @@ export default function AdminDashboard({ phase, setPhase }) {
               >
                 <option value="welcome">Phase 1: Welcome</option>
                 <option value="wordcloud">Phase 2: Word Cloud</option>
-                <option value="messaging">Phase 3: Messaging</option>
-                <option value="jamming">Phase 4: Jamming</option>
+                <option value="jamming">Phase 3: Jamming</option>
               </select>
               <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-base pointer-events-none opacity-70">
                 arrow_drop_down
@@ -321,9 +351,9 @@ export default function AdminDashboard({ phase, setPhase }) {
                   <p className="font-body-sm text-on-surface-variant">{selectedStudent.usn}</p>
                 </div>
                 <span className={`ml-auto font-body-sm text-sm font-medium px-3 py-1 rounded-full ${
-                  messages.length > 0 ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'
+                  visibleMessages.length > 0 ? 'bg-primary/10 text-primary' : 'bg-surface-container text-on-surface-variant'
                 }`}>
-                  {loadingMessages ? '…' : `${messages.length} message${messages.length !== 1 ? 's' : ''}`}
+                  {loadingMessages ? '…' : `${visibleMessages.length} message${visibleMessages.length !== 1 ? 's' : ''}`}
                 </span>
 
                 {/* PDF Export Button */}
@@ -350,14 +380,14 @@ export default function AdminDashboard({ phase, setPhase }) {
 
               {loadingMessages ? (
                 <div className="text-center py-12 text-on-surface-variant">Loading messages…</div>
-              ) : messages.length === 0 ? (
+              ) : visibleMessages.length === 0 ? (
                 <div className="text-center py-12">
                   <span className="material-symbols-outlined text-4xl text-outline mb-3">mail</span>
                   <p className="font-body-sm text-on-surface-variant">No messages received yet.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {messages.map((msg, i) => (
+                  {visibleMessages.map((msg, i) => (
                     <motion.div
                       key={msg._id}
                       initial={{ opacity: 0, y: 10 }}
@@ -370,13 +400,23 @@ export default function AdminDashboard({ phase, setPhase }) {
                         {STAMPS[msg.stamp] || '📝'}
                       </span>
 
-                      <p className="font-body-lg text-on-background whitespace-pre-wrap pr-10 leading-relaxed">
-                        {msg.content}
-                      </p>
+                       <p className="font-body-lg text-on-background whitespace-pre-wrap pr-10 leading-relaxed">
+                         {msg.content}
+                       </p>
 
-                      <div className="mt-4 pt-3 border-t border-outline-variant/20 flex justify-between items-center flex-wrap gap-2">
-                        <span className={`font-label-md text-xs uppercase tracking-widest px-2 py-1 rounded border ${msg.isAnonymous ? 'text-outline-variant bg-surface-variant/30 border-outline-variant/30' : 'text-error bg-error/5 border-error/20'}`}>
-                          From: {msg.isAnonymous ? 'Anonymous' : msg.senderUsn}
+                       {msg.imageUrl && (
+                         <div className="mt-3 flex justify-center">
+                           <img 
+                             src={msg.imageUrl} 
+                             alt="Attached" 
+                             className="max-h-[300px] w-auto rounded-lg border border-outline-variant/30 object-contain"
+                           />
+                         </div>
+                       )}
+ 
+                       <div className="mt-4 pt-3 border-t border-outline-variant/20 flex justify-between items-center flex-wrap gap-2">
+                        <span className="font-label-md text-xs uppercase tracking-widest px-2 py-1 rounded border text-error bg-error/5 border-error/20">
+                          From: {usnToName[msg.senderUsn] ? `${usnToName[msg.senderUsn]} (${msg.senderUsn})` : msg.senderUsn}
                         </span>
                         <span className="font-body-sm text-xs text-on-surface-variant">
                           {new Date(msg.createdAt).toLocaleString('en-IN', {
