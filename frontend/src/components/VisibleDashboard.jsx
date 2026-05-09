@@ -82,9 +82,9 @@ export default function VisibleDashboard({ phase, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-background flex flex-col w-full"
+        className="min-h-screen bg-background w-full"
       >
-        <div className="flex-1 w-full h-full relative">
+        <div className="min-h-screen w-full relative">
           <AdminWordCloud />
         </div>
       </motion.div>
