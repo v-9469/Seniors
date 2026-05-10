@@ -73,7 +73,7 @@ export default function AdminWordCloud() {
   }, [wordsList]);
 
   return (
-    <div className="flex flex-col h-full w-full items-center justify-center relative overflow-hidden p-8">
+    <div className="flex flex-col min-h-screen w-full items-center justify-center relative overflow-hidden p-8 bg-background">
       
       {/* Background blobs for aesthetics */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
